@@ -1,0 +1,12 @@
+[package]
+name = "yew-ssg"
+version = "0.1.0"
+edition = "2021"
+description = "Static site generator for Yew applications"
+license = "MIT"
+repository = "https://github.com/chriamue/yew-ssg"
+readme = "README.md"
+keywords = ["yew", "ssg", "static-site-generator", "wasm", "seo"]
+categories = ["web-programming", "wasm"]
+
+[dependencies]
