@@ -10,3 +10,7 @@ keywords = ["yew", "ssg", "static-site-generator", "wasm", "seo"]
 categories = ["web-programming", "wasm"]
 
 [dependencies]
+yew = { version = "0.21", features = ["ssr"] }
+yew-router = "0.18"
+log = "0.4"
+strum = "0.26.3"
