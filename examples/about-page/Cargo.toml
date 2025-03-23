@@ -1,0 +1,10 @@
+[package]
+name = "about-page"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yew = { version = "0.21", features = ["csr"] }
+yew-router = "0.18"
+strum = "0.26.3"
+strum_macros = "0.26.3"
