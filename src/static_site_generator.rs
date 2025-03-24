@@ -1,3 +1,4 @@
+use minijinja::{context, Environment};
 use std::error::Error;
 use std::fmt::Debug;
 use std::fs;
@@ -7,10 +8,25 @@ use yew::prelude::*;
 use yew::ServerRenderer;
 use yew_router::Routable;
 
+const DEFAULT_TEMPLATE: &str = r#"<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="/styles.css">
+        <script defer src="/app.js"></script>
+    </head>
+    <body>
+        <div id="app">{{ content }}</div>
+    </body>
+</html>"#;
+
 /// Minimal static site generator for Yew applications
 pub struct StaticSiteGenerator {
     /// Output directory for generated files
     output_dir: String,
+    /// Template environment
+    template_env: Environment<'static>,
 }
 
 /// Wrapper for switch function that implements PartialEq
@@ -30,11 +46,34 @@ impl<R: Routable + Clone + 'static> PartialEq for SwitchFn<R> {
 }
 
 impl StaticSiteGenerator {
-    /// Create a new static site generator
+    /// Create a new static site generator with default template
     pub fn new(output_dir: &str) -> Self {
+        let mut env = Environment::new();
+        // Store template as a static str
+        env.add_template("base", DEFAULT_TEMPLATE)
+            .expect("Failed to add default template");
+
         Self {
             output_dir: output_dir.to_string(),
+            template_env: env,
         }
+    }
+
+    /// Create a new static site generator with custom template
+    pub fn with_template<S: Into<String>>(
+        output_dir: &str,
+        template: S,
+    ) -> Result<Self, Box<dyn Error>> {
+        let mut env = Environment::new();
+        // Convert template to String and store it in a Box to make it 'static
+        let template: String = template.into();
+        let template = Box::leak(template.into_boxed_str());
+        env.add_template("base", template)?;
+
+        Ok(Self {
+            output_dir: output_dir.to_string(),
+            template_env: env,
+        })
     }
 
     /// Generate static HTML files for the given route type
@@ -53,12 +92,13 @@ impl StaticSiteGenerator {
         for route in R::iter() {
             // Get the path for this route
             let route_path = route.to_path();
+            let route_str = format!("{:?}", route);
 
             // Create the HTML for this route
             let content = self.render_route(&route, switch_fn.clone()).await?;
 
-            // Create a minimal HTML document
-            let html = self.wrap_html(&content);
+            // Create HTML document using template
+            let html = self.wrap_html(&content, &route_str, &route_path)?;
 
             // Determine file path
             let (dir_path, file_path) = if route_path == "/" {
@@ -124,22 +164,45 @@ impl StaticSiteGenerator {
         Ok(content)
     }
 
-    /// Wrap content in minimal HTML
-    fn wrap_html(&self, content: &str) -> String {
-        format!(
-            r#"<!DOCTYPE html>
+    /// Wrap content in HTML using template
+    fn wrap_html(&self, content: &str, title: &str, path: &str) -> Result<String, Box<dyn Error>> {
+        let tmpl = self.template_env.get_template("base")?;
+
+        let result = tmpl.render(context! {
+            content => content,
+            title => title,
+            path => path,
+            description => format!("Page for {}", title),
+        })?;
+
+        Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_custom_template() {
+        let template = r#"<!DOCTYPE html>
 <html>
     <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="/styles.css">
-        <script defer src="/app.js"></script>
+        <title>{{ title }}</title>
+        <meta name="description" content="{{ description }}">
     </head>
     <body>
-        <div id="app">{}</div>
+        <main>{{ content }}</main>
     </body>
-</html>"#,
-            content
-        )
+</html>"#;
+
+        let generator = StaticSiteGenerator::with_template("dist", template).unwrap();
+        let result = generator
+            .wrap_html("test content", "Test Page", "/test")
+            .unwrap();
+
+        assert!(result.contains("Test Page"));
+        assert!(result.contains("test content"));
+        assert!(result.contains("Page for Test Page"));
     }
 }
