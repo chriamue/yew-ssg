@@ -3,8 +3,23 @@ name = "about-page"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "about-page"
+path = "src/main.rs"
+
+[[bin]]
+name = "ssg"
+path = "src/bin/ssg.rs"
+required-features = ["ssg"]
+
 [dependencies]
 yew = { version = "0.21", features = ["csr"] }
 yew-router = "0.18"
 strum = "0.26.3"
 strum_macros = "0.26.3"
+yew-ssg = { path = "../..", optional = true }
+tokio = { version = "1.0", features = ["full"], optional = true }
+
+[features]
+default = []
+ssg = ["yew/ssr", "yew-ssg", "tokio"]
