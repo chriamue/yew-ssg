@@ -10,6 +10,7 @@ keywords = ["yew", "ssg", "static-site-generator", "wasm", "seo"]
 categories = ["web-programming", "wasm"]
 
 [dependencies]
+async-trait = "0.1"
 log = "0.4"
 minijinja = "2.8.0"
 strum = "0.26.3"
