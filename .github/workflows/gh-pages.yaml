@@ -1,0 +1,45 @@
+name: Build and Deploy
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-bindgen-cli
+        run: cargo install wasm-bindgen-cli
+
+      - name: Install Trunk
+        uses: jetli/trunk-action@v0.5.0
+        with:
+          version: "latest"
+
+      - name: Build and Bundle Example
+        run: |
+          cd examples/about-page
+
+          # Add missing template.html for trunk
+          mkdir -p dist
+
+          # Build the Wasm app with trunk
+          trunk build --release --public-url /yew-ssg/
+
+          # Run the SSG to generate static pages
+          cargo run --bin ssg --features=ssg
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./examples/about-page/dist
