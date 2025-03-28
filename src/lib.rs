@@ -1,5 +1,6 @@
 pub mod config;
 pub mod generator;
+pub mod generator_collection;
 pub mod generators;
 pub mod static_site_generator;
 

@@ -1,18 +1,16 @@
 use crate::generator::Generator;
-use async_trait::async_trait;
 use std::collections::HashMap;
 use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct TitleGenerator;
 
-#[async_trait]
 impl Generator for TitleGenerator {
     fn name(&self) -> &'static str {
         "title"
     }
 
-    async fn generate(
+    fn generate(
         &self,
         _route: &str,
         _content: &str,
@@ -22,7 +20,7 @@ impl Generator for TitleGenerator {
         Ok(format!("<title>{}</title>", title))
     }
 
-    fn box_clone(&self) -> Box<dyn Generator + Send + Sync> {
+    fn clone_box(&self) -> Box<dyn Generator> {
         Box::new(self.clone())
     }
 }

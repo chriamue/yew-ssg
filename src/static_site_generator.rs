@@ -1,4 +1,5 @@
-use minijinja::{context, Environment};
+use minijinja::Environment;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fs;
@@ -65,7 +66,7 @@ impl StaticSiteGenerator {
         template: S,
     ) -> Result<Self, Box<dyn Error>> {
         let mut env = Environment::new();
-        // Convert template to String and store it in a Box to make it 'static
+
         let template: String = template.into();
         let template = Box::leak(template.into_boxed_str());
         env.add_template("base", template)?;
@@ -97,8 +98,11 @@ impl StaticSiteGenerator {
             // Create the HTML for this route
             let content = self.render_route(&route, switch_fn.clone()).await?;
 
+            // Empty generator outputs for now (would be filled by actual generators)
+            let generator_outputs = HashMap::new();
+
             // Create HTML document using template
-            let html = self.wrap_html(&content, &route_str, &route_path)?;
+            let html = self.wrap_html(&content, &route_str, &route_path, &generator_outputs)?;
 
             // Determine file path
             let (dir_path, file_path) = if route_path == "/" {
@@ -165,16 +169,26 @@ impl StaticSiteGenerator {
     }
 
     /// Wrap content in HTML using template
-    fn wrap_html(&self, content: &str, title: &str, path: &str) -> Result<String, Box<dyn Error>> {
+    fn wrap_html(
+        &self,
+        content: &str,
+        title: &str,
+        path: &str,
+        generator_outputs: &HashMap<String, String>,
+    ) -> Result<String, Box<dyn Error>> {
         let tmpl = self.template_env.get_template("base")?;
 
-        let result = tmpl.render(context! {
-            content => content,
-            title => title,
-            path => path,
-            description => format!("Page for {}", title),
-        })?;
+        let mut context_data = HashMap::new();
+        context_data.insert("content".to_string(), content.to_string());
+        context_data.insert("title".to_string(), title.to_string());
+        context_data.insert("path".to_string(), path.to_string());
+        context_data.insert("description".to_string(), format!("Page for {}", title));
 
+        for (key, value) in generator_outputs {
+            context_data.insert(key.clone(), value.clone());
+        }
+
+        let result = tmpl.render(context_data)?;
         Ok(result)
     }
 }
@@ -197,8 +211,11 @@ mod tests {
 </html>"#;
 
         let generator = StaticSiteGenerator::with_template("dist", template).unwrap();
+
+        let generator_outputs = HashMap::new();
+
         let result = generator
-            .wrap_html("test content", "Test Page", "/test")
+            .wrap_html("test content", "Test Page", "/test", &generator_outputs)
             .unwrap();
 
         assert!(result.contains("Test Page"));

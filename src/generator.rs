@@ -1,19 +1,24 @@
-use async_trait::async_trait;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Debug;
 
-#[async_trait]
-pub trait Generator: Send + Sync + Debug {
+pub trait Generator: Debug + Send + Sync {
     fn name(&self) -> &'static str;
 
-    async fn generate(
+    fn generate(
         &self,
         route: &str,
         content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>>;
 
-    // Add method to clone self
-    fn box_clone(&self) -> Box<dyn Generator + Send + Sync>;
+    // Add a method for cloning trait objects
+    fn clone_box(&self) -> Box<dyn Generator>;
+}
+
+// Enable cloning for trait objects
+impl Clone for Box<dyn Generator> {
+    fn clone(&self) -> Self {
+        self.as_ref().clone_box()
+    }
 }

@@ -1,26 +1,27 @@
 use crate::generator::Generator;
+use crate::generator_collection::GeneratorCollection;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone)]
 pub struct SsgConfig {
     pub output_dir: PathBuf,
     pub template_path: Option<PathBuf>,
     pub default_template: String,
     pub global_metadata: HashMap<String, String>,
     pub route_metadata: HashMap<String, HashMap<String, String>>,
-    pub generators: Vec<Box<dyn Generator + Send + Sync>>,
+    pub generators: GeneratorCollection,
 }
 
-impl Clone for SsgConfig {
-    fn clone(&self) -> Self {
+impl Default for SsgConfig {
+    fn default() -> Self {
         Self {
-            output_dir: self.output_dir.clone(),
-            template_path: self.template_path.clone(),
-            default_template: self.default_template.clone(),
-            global_metadata: self.global_metadata.clone(),
-            route_metadata: self.route_metadata.clone(),
-            generators: self.generators.iter().map(|g| g.box_clone()).collect(),
+            output_dir: PathBuf::from("dist"),
+            template_path: None,
+            default_template: String::new(),
+            global_metadata: HashMap::new(),
+            route_metadata: HashMap::new(),
+            generators: GeneratorCollection::new(),
         }
     }
 }
@@ -58,8 +59,8 @@ impl SsgConfigBuilder {
         self
     }
 
-    pub fn add_generator<G: Generator + Send + Sync + 'static>(mut self, generator: G) -> Self {
-        self.config.generators.push(Box::new(generator));
+    pub fn add_generator<G: Generator + 'static>(mut self, generator: G) -> Self {
+        self.config.generators.add(generator);
         self
     }
 
