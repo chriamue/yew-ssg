@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="/style-c0d8af38ace01a21.css" integrity="sha384-/gWhg6HpZi1yZIKMLKDem5NIZ9H3noB6ghwRTD6rGifuDWV1QMFTPLJfAQpoyB0N"/>
+        
+<script type="module">
+import init, * as bindings from '/about-page-f9df69298c9615e8.js';
+const wasm = await init({ module_or_path: '/about-page-f9df69298c9615e8_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+    <link rel="modulepreload" href="/about-page-f9df69298c9615e8.js" crossorigin="anonymous" integrity="sha384-tFEXHR3MQJwA3vOmkIGhvSDo5BuO8VjyoNfdgC6McnsgG61tvlkvvBTkLREe1nP2"><link rel="preload" href="/about-page-f9df69298c9615e8_bg.wasm" crossorigin="anonymous" integrity="sha384-8tOBv/q3htl757ktKQhGoTLfsrM8tSPbu8ZffHyn6w742cCVuLvfUvptZKuP/kQ7" as="fetch" type="application/wasm"></head>
+    <body>
+        <!--<[yew_ssg::static_site_generator::StaticSiteGenerator::render_route::{{closure}}::RouteRendererComponent<about_page::route::Route>]>--><!--<[about_page::readme::ReadmePage]>--><div class="readme-container"><div class="markdown-body"><!--<#>--><h1>yew-ssg</h1>
+<p>A static site generator for Yew applications that helps you pre-render your Yew apps for better SEO and load times.</p>
+<h2>Features</h2>
+<ul>
+<li>🚀 Pre-renders Yew applications to static HTML</li>
+<li>🔄 Works with yew-router for multi-page applications</li>
+<li>📝 Customizable HTML templates</li>
+<li>🧩 Plugin system for extensibility</li>
+<li>🔍 SEO-friendly output with metadata support</li>
+</ul>
+<h2>Installation</h2>
+<p>Add <code>yew-ssg</code> to your <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+yew-ssg = &quot;0.1.0&quot;
+</code></pre>
+<p>For SSG functionality, enable the necessary features:</p>
+<pre><code class="language-toml">[dependencies]
+yew = { version = &quot;0.21&quot;, features = [&quot;csr&quot;] }
+yew-ssg = { optional = true }
+
+[features]
+ssg = [&quot;yew/ssr&quot;, &quot;yew-ssg&quot;]
+</code></pre>
+<h2>Quick Start</h2>
+<ol>
+<li>Create a standard Yew application with routing</li>
+<li>Add an SSG binary to your project</li>
+<li>Run the SSG binary to generate static HTML</li>
+</ol>
+<p>Example SSG binary:</p>
+<pre><code class="language-rust">use my_app::route::Route;
+use my_app::switch_route::switch_route;
+use std::fs;
+use yew_ssg::StaticSiteGenerator;
+
+#[tokio::main]
+async fn main() {
+    // Load template or use default
+    let template = fs::read_to_string(&quot;dist/index.html&quot;)
+        .unwrap_or_else(|_| {
+            println!(&quot;Using default template&quot;);
+            r#&quot;&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;meta charset=&quot;utf-8&quot;&gt;
+        &lt;title&gt;{{ title }}&lt;/title&gt;
+        &lt;link rel=&quot;stylesheet&quot; href=&quot;/styles.css&quot;&gt;
+        &lt;script defer src=&quot;/app.js&quot;&gt;&lt;/script&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;div id=&quot;app&quot;&gt;{{ content }}&lt;/div&gt;
+    &lt;/body&gt;
+&lt;/html&gt;&quot;#.to_string()
+        });
+
+    // Initialize the generator
+    let generator = StaticSiteGenerator::with_template(&quot;dist&quot;, &amp;template)
+        .expect(&quot;Failed to create generator&quot;);
+
+    // Generate static files
+    generator.generate::&lt;Route, _&gt;(switch_route).await
+        .expect(&quot;Failed to generate static site&quot;);
+
+    println!(&quot;✅ Static site generated successfully!&quot;);
+}
+</code></pre>
+<h2>Advanced Usage</h2>
+<h3>Custom Templates</h3>
+<p>You can provide a custom HTML template with placeholders:</p>
+<ul>
+<li><code>{{ content }}</code> - The rendered Yew content</li>
+<li><code>{{ title }}</code> - Page title (from route)</li>
+<li><code>{{ description }}</code> - Page description</li>
+<li><code>{{ path }}</code> - Route path</li>
+</ul>
+<h3>Metadata Support</h3>
+<p>Using the <code>SsgConfigBuilder</code>, you can add global and per-route metadata:</p>
+<pre><code class="language-rust">let config = SsgConfigBuilder::new()
+    .output_dir(&quot;dist&quot;)
+    .global_metadata(HashMap::from([
+        (&quot;site_name&quot;.to_string(), &quot;My Awesome Site&quot;.to_string()),
+    ]))
+    .route_metadata(&quot;/about&quot;, HashMap::from([
+        (&quot;title&quot;.to_string(), &quot;About Us&quot;.to_string()),
+        (&quot;description&quot;.to_string(), &quot;Learn about our company&quot;.to_string()),
+    ]))
+    .build();
+</code></pre>
+<h3>Generator Plugins</h3>
+<p>Implement custom generators to extend functionality:</p>
+<pre><code class="language-rust">#[derive(Debug, Clone)]
+pub struct MyCustomGenerator;
+
+#[async_trait]
+impl Generator for MyCustomGenerator {
+    fn name(&amp;self) -&gt; &amp;'static str {
+        &quot;custom&quot;
+    }
+
+    async fn generate(
+        &amp;self,
+        route: &amp;str,
+        content: &amp;str,
+        metadata: &amp;HashMap&lt;String, String&gt;,
+    ) -&gt; Result&lt;String, Box&lt;dyn Error&gt;&gt; {
+        // Custom generation logic
+        Ok(format!(&quot;&lt;custom&gt;{}&lt;/custom&gt;&quot;, metadata.get(&quot;custom&quot;).unwrap_or(&amp;String::new())))
+    }
+
+    fn box_clone(&amp;self) -&gt; Box&lt;dyn Generator + Send + Sync&gt; {
+        Box::new(self.clone())
+    }
+}
+
+// Add to config
+let config = SsgConfigBuilder::new()
+    .add_generator(MyCustomGenerator)
+    .build();
+</code></pre>
+<h2>Example Projects</h2>
+<p>Check out the examples directory for complete project examples:</p>
+<ul>
+<li><code>examples/about-page</code>: Simple multi-page site with home and about pages</li>
+<li><code>examples/blog</code>: Blog with markdown content</li>
+<li><code>examples/portfolio</code>: Portfolio site with dynamic routing</li>
+</ul>
+<h2>Contributing</h2>
+<p>Contributions welcome! Please feel free to submit a Pull Request.</p>
+<h2>License</h2>
+<p>This project is licensed under the MIT License - see the LICENSE file for details.</p>
+<!--</#>--></div></div><!--</[about_page::readme::ReadmePage]>--><!--</[yew_ssg::static_site_generator::StaticSiteGenerator::render_route::{{closure}}::RouteRendererComponent<about_page::route::Route>]>-->
+    </body>
+</html>
