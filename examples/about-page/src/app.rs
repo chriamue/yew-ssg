@@ -20,6 +20,11 @@ pub fn app() -> Html {
                         </Link<Route>>
                     </li>
                     <li>
+                        <Link<Route> to={Route::Readme}>
+                            { "ReadMe" }
+                        </Link<Route>>
+                    </li>
+                    <li>
                         <Link<Route> to={Route::NotFound}>
                             { "Not Found" }
                         </Link<Route>>

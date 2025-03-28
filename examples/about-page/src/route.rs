@@ -7,6 +7,8 @@ pub enum Route {
     Home,
     #[at("/about")]
     About,
+    #[at("/readme")]
+    Readme,
     #[not_found]
     #[at("/404")]
     NotFound,
