@@ -7,7 +7,28 @@ use yew_router::prelude::*;
 pub fn app() -> Html {
     html! {
         <BrowserRouter>
-            <Switch<Route> render={switch_route} />
+            <nav>
+                <ul>
+                    <li>
+                        <Link<Route> to={Route::Home}>
+                            { "Home" }
+                        </Link<Route>>
+                    </li>
+                    <li>
+                        <Link<Route> to={Route::About}>
+                            { "About" }
+                        </Link<Route>>
+                    </li>
+                    <li>
+                        <Link<Route> to={Route::NotFound}>
+                            { "Not Found" }
+                        </Link<Route>>
+                    </li>
+                </ul>
+            </nav>
+            <main>
+                <Switch<Route> render={switch_route} />
+            </main>
         </BrowserRouter>
     }
 }
