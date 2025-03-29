@@ -1,3 +1,5 @@
+use crate::generator::Generator;
+use crate::generators::{OpenGraphGenerator, TwitterCardGenerator};
 use minijinja::Environment;
 use std::collections::HashMap;
 use std::error::Error;
@@ -28,6 +30,8 @@ pub struct StaticSiteGenerator {
     output_dir: String,
     /// Template environment
     template_env: Environment<'static>,
+    global_metadata: HashMap<String, String>,
+    route_metadata: HashMap<String, HashMap<String, String>>,
 }
 
 /// Wrapper for switch function that implements PartialEq
@@ -57,6 +61,8 @@ impl StaticSiteGenerator {
         Self {
             output_dir: output_dir.to_string(),
             template_env: env,
+            global_metadata: HashMap::new(),
+            route_metadata: HashMap::new(),
         }
     }
 
@@ -74,7 +80,34 @@ impl StaticSiteGenerator {
         Ok(Self {
             output_dir: output_dir.to_string(),
             template_env: env,
+            global_metadata: HashMap::new(),
+            route_metadata: HashMap::new(),
         })
+    }
+
+    pub fn with_global_metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.global_metadata = metadata;
+        self
+    }
+
+    /// Set metadata for a specific route
+    pub fn with_route_metadata(mut self, route: &str, metadata: HashMap<String, String>) -> Self {
+        self.route_metadata.insert(route.to_string(), metadata);
+        self
+    }
+
+    /// Get combined metadata for a specific route
+    fn get_metadata_for_route(&self, route_path: &str) -> HashMap<String, String> {
+        let mut metadata = self.global_metadata.clone();
+
+        if let Some(route_specific) = self.route_metadata.get(route_path) {
+            // Route-specific metadata overrides global metadata
+            for (key, value) in route_specific {
+                metadata.insert(key.clone(), value.clone());
+            }
+        }
+
+        metadata
     }
 
     /// Generate static HTML files for the given route type
@@ -178,16 +211,71 @@ impl StaticSiteGenerator {
     ) -> Result<String, Box<dyn Error>> {
         let tmpl = self.template_env.get_template("base")?;
 
+        // Get metadata for this route
+        let metadata = self.get_metadata_for_route(path);
+
+        // Create base context
         let mut context_data = HashMap::new();
         context_data.insert("content".to_string(), content.to_string());
         context_data.insert("title".to_string(), title.to_string());
         context_data.insert("path".to_string(), path.to_string());
-        context_data.insert("description".to_string(), format!("Page for {}", title));
 
+        // Add description (preferring metadata over default)
+        let description = metadata
+            .get("description")
+            .cloned()
+            .unwrap_or_else(|| format!("Page for {}", title));
+        context_data.insert("description".to_string(), description);
+
+        // Add other metadata
+        for (key, value) in &metadata {
+            if !context_data.contains_key(key) {
+                context_data.insert(key.clone(), value.clone());
+            }
+        }
+
+        // Create and add Open Graph tags if the template contains {{ open_graph_tags }}
+        let html_template = tmpl.source();
+        if html_template.contains("{{ open_graph_tags }}") {
+            let og_generator = OpenGraphGenerator {
+                site_name: metadata
+                    .get("site_name")
+                    .cloned()
+                    .unwrap_or_else(|| "".to_string()),
+                default_image: metadata
+                    .get("default_image")
+                    .cloned()
+                    .unwrap_or_else(|| "".to_string()),
+            };
+
+            let og_tags = og_generator
+                .generate(path, content, &metadata)
+                .unwrap_or_default();
+            context_data.insert("open_graph_tags".to_string(), og_tags);
+        }
+
+        // Create and add Twitter Card tags if the template contains {{ twitter_card_tags }}
+        if html_template.contains("{{ twitter_card_tags }}") {
+            let twitter_generator = TwitterCardGenerator {
+                twitter_site: metadata.get("twitter_site").cloned(),
+                default_card_type: metadata
+                    .get("twitter_card_type")
+                    .cloned()
+                    .unwrap_or_else(|| "summary".to_string()),
+            };
+
+            let twitter_tags = twitter_generator
+                .generate(path, content, &metadata)
+                .unwrap_or_default();
+            context_data.insert("twitter_card_tags".to_string(), twitter_tags);
+        }
+
+        // Add generator outputs
         for (key, value) in generator_outputs {
             context_data.insert(key.clone(), value.clone());
         }
 
+        // Render the template with the context
         let result = tmpl.render(context_data)?;
         Ok(result)
     }
