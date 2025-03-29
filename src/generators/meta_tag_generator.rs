@@ -4,8 +4,8 @@ use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct MetaTagGenerator {
-    default_description: String,
-    default_keywords: Vec<String>,
+    pub default_description: String,
+    pub default_keywords: Vec<String>,
 }
 
 impl Generator for MetaTagGenerator {

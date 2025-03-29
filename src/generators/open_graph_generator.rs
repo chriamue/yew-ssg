@@ -4,8 +4,8 @@ use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct OpenGraphGenerator {
-    site_name: String,
-    default_image: String,
+    pub site_name: String,
+    pub default_image: String,
 }
 
 impl Generator for OpenGraphGenerator {

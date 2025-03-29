@@ -4,7 +4,7 @@ use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct RobotsMetaGenerator {
-    default_robots: String,
+    pub default_robots: String,
 }
 
 impl Generator for RobotsMetaGenerator {
