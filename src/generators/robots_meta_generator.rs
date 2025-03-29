@@ -30,3 +30,34 @@ impl Generator for RobotsMetaGenerator {
         Box::new(self.clone())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::generator::Generator;
+    use crate::generators::RobotsMetaGenerator;
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_robots_meta_generator() {
+        let generator = RobotsMetaGenerator {
+            default_robots: "index, follow".to_string(),
+        };
+
+        // Test with default value
+        let result = generator
+            .generate("/test-route", "<div>Test content</div>", &HashMap::new())
+            .unwrap();
+
+        assert!(result.contains("<meta name=\"robots\" content=\"index, follow\">"));
+
+        // Test with custom value
+        let mut metadata = HashMap::new();
+        metadata.insert("robots".to_string(), "noindex, nofollow".to_string());
+
+        let result = generator
+            .generate("/test-route", "<div>Test content</div>", &metadata)
+            .unwrap();
+
+        assert!(result.contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
+    }
+}
