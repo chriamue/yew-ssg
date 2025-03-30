@@ -10,15 +10,19 @@ pub use config::SsgConfigBuilder;
 pub use static_site_generator::StaticSiteGenerator;
 
 pub mod prelude {
-    pub use crate::config::SsgConfig;
-    pub use crate::config::SsgConfigBuilder;
+    // Configuration
+    pub use crate::config::{SsgConfig, SsgConfigBuilder};
 
+    // Core traits and components
     pub use crate::generator::Generator;
-    pub use crate::generator_collection::GeneratorCollection;
+    pub use crate::generator_collection::{GeneratorCollection, GeneratorInfoIterator};
+
+    // Generator implementations
     pub use crate::generators::{
         MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator,
         TwitterCardGenerator,
     };
 
+    // Static site generator
     pub use crate::static_site_generator::StaticSiteGenerator;
 }

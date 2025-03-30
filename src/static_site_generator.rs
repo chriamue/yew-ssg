@@ -1,5 +1,6 @@
 use crate::config::SsgConfig;
 use minijinja::Environment;
+use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Debug;
@@ -176,6 +177,51 @@ impl StaticSiteGenerator {
         Ok(renderer.render().await)
     }
 
+    fn post_process_data_attributes(
+        &self,
+        html: &str,
+        metadata: &HashMap<String, String>,
+        generator_outputs: &HashMap<String, String>,
+        content: &str,
+    ) -> String {
+        let mut document = html.to_string();
+
+        // Process title element
+        if let Some(title) = metadata.get("title") {
+            let re = Regex::new(r#"<title data-ssg="title">.*?</title>"#).unwrap();
+            document = re
+                .replace_all(&document, &format!("<title>{}</title>", title))
+                .to_string();
+        }
+
+        // Process meta description
+        if let Some(description) = metadata.get("description") {
+            let re = Regex::new(r#"<meta name="description" data-ssg="description" content=".*?""#)
+                .unwrap();
+            document = re
+                .replace_all(
+                    &document,
+                    &format!(r#"<meta name="description" content="{}""#, description),
+                )
+                .to_string();
+        }
+
+        // Process placeholders for generator outputs
+        for (key, value) in generator_outputs {
+            let pattern = format!(r#"<meta data-ssg-placeholder="{}" .*?>"#, key);
+            let re = Regex::new(&pattern).unwrap();
+            document = re.replace_all(&document, value).to_string();
+        }
+
+        // Handle content div
+        let re = Regex::new(r#"<div id="app" data-ssg="content">.*?</div>"#).unwrap();
+        document = re
+            .replace_all(&document, &format!(r#"<div id="app">{}</div>"#, content))
+            .to_string();
+
+        document
+    }
+
     /// Create the final HTML by combining rendered content, metadata, and generator outputs.
     fn wrap_html(
         &self,
@@ -207,7 +253,13 @@ impl StaticSiteGenerator {
             eprintln!("Warning: No title provided for route '{}'", path);
         }
 
-        Ok(tmpl.render(context)?)
+        // Render the template with Minijinja
+        let mut html = tmpl.render(context)?;
+
+        // Post-process data-ssg attributes for better trunk compatibility
+        html = self.post_process_data_attributes(&html, metadata, generator_outputs, content);
+
+        Ok(html)
     }
 }
 
@@ -293,6 +345,123 @@ mod tests {
         assert!(!result.contains("Metadata Title"));
         assert!(result.contains("<meta name=\"keywords\" content=\"generated\">"));
         assert!(result.contains("<p>Meta: Metadata Description</p>"));
+    }
+
+    #[test]
+    fn test_post_process_data_attributes() {
+        // Create a minimal generator instance
+        let config = SsgConfigBuilder::new().output_dir("test_dist").build();
+        let generator = StaticSiteGenerator::new(config).unwrap();
+
+        // Create test HTML with data-ssg attributes - simpler format to ensure matching works
+        let html = r#"<!DOCTYPE html><html><head><title data-ssg="title">Default Title</title><meta name="description" data-ssg="description" content="Default description"><meta data-ssg-placeholder="meta_tags" content="seo"><meta data-ssg-placeholder="open_graph" content="og"></head><body><div id="app" data-ssg="content"></div></body></html>"#;
+
+        // Create test metadata and generator outputs
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Real Title".to_string());
+        metadata.insert("description".to_string(), "Real description".to_string());
+
+        let mut generator_outputs = HashMap::new();
+        generator_outputs.insert(
+            "meta_tags".to_string(),
+            "<meta name=\"keywords\" content=\"test,keywords\">".to_string(),
+        );
+        generator_outputs.insert(
+            "open_graph".to_string(),
+            "<meta property=\"og:title\" content=\"OG Title\">".to_string(),
+        );
+
+        let content = "<p>Generated content</p>";
+
+        // Process the HTML
+        let processed =
+            generator.post_process_data_attributes(html, &metadata, &generator_outputs, content);
+
+        // Print the processed HTML for debugging
+        println!("Processed HTML: {}", processed);
+
+        // Verify replacements were made correctly
+        assert!(processed.contains("<title>Real Title</title>"));
+        assert!(!processed.contains("data-ssg=\"title\""));
+
+        assert!(processed.contains("<meta name=\"description\" content=\"Real description\""));
+        assert!(!processed.contains("data-ssg=\"description\""));
+
+        assert!(processed.contains("<meta name=\"keywords\" content=\"test,keywords\">"));
+        assert!(!processed.contains("data-ssg-placeholder=\"meta_tags\""));
+
+        assert!(processed.contains("<meta property=\"og:title\" content=\"OG Title\">"));
+        assert!(!processed.contains("data-ssg-placeholder=\"open_graph\""));
+
+        assert!(processed.contains("<div id=\"app\"><p>Generated content</p></div>"));
+        assert!(!processed.contains("data-ssg=\"content\""));
+    }
+
+    #[test]
+    fn test_wrap_html_with_data_attributes() {
+        // Template with data-ssg attributes
+        let template = r#"<!DOCTYPE html>
+<html>
+<head>
+    <title data-ssg="title">Default Title for Development</title>
+    <meta name="description" data-ssg="description" content="Default description">
+    <meta data-ssg-placeholder="meta_tags" content="seo">
+    <meta data-ssg-placeholder="open_graph" content="og">
+</head>
+<body>
+    <div id="app" data-ssg="content"></div>
+</body>
+</html>"#;
+
+        // Setup generator with template
+        let config = SsgConfigBuilder::new()
+            .output_dir("test_dist")
+            .default_template_string(template.to_string())
+            .build();
+
+        let generator = StaticSiteGenerator::new(config).unwrap();
+
+        // Test data
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "SEO Title".to_string());
+        metadata.insert("description".to_string(), "SEO Description".to_string());
+
+        let mut generator_outputs = HashMap::new();
+        generator_outputs.insert(
+            "meta_tags".to_string(),
+            "<meta name=\"keywords\" content=\"test,seo\">".to_string(),
+        );
+        generator_outputs.insert(
+            "open_graph".to_string(),
+            "<meta property=\"og:title\" content=\"OG Title\">".to_string(),
+        );
+
+        // Execute - this should call both renderer and post-processor
+        let result = generator
+            .wrap_html(
+                "<p>Generated content</p>",
+                "/test",
+                &metadata,
+                &generator_outputs,
+            )
+            .unwrap();
+
+        // Verify that both templating and post-processing occurred
+        assert!(result.contains("<title>SEO Title</title>"));
+        assert!(!result.contains("Default Title for Development"));
+        assert!(!result.contains("data-ssg=\"title\""));
+
+        assert!(result.contains("<meta name=\"description\" content=\"SEO Description\""));
+        assert!(!result.contains("Default description"));
+
+        assert!(result.contains("<meta name=\"keywords\" content=\"test,seo\">"));
+        assert!(!result.contains("data-ssg-placeholder=\"meta_tags\""));
+
+        assert!(result.contains("<meta property=\"og:title\" content=\"OG Title\">"));
+        assert!(!result.contains("data-ssg-placeholder=\"open_graph\""));
+
+        assert!(result.contains("<div id=\"app\"><p>Generated content</p></div>"));
+        assert!(!result.contains("data-ssg=\"content\""));
     }
 
     #[test]
