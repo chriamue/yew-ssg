@@ -1,5 +1,7 @@
 use about_page::route::Route;
 use about_page::switch_route::switch_route;
+use env_logger::{Builder, Env};
+use log::{error, info, warn};
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
@@ -20,18 +22,26 @@ const ENV_TWITTER: &str = "TWITTER_HANDLE";
 const DEFAULT_SITE_NAME: &str = "Yew SSG Example";
 const DEFAULT_KEYWORDS: &str = "yew, rust, ssg, webdev, spa, seo";
 
-/// Configure and run the static site generator for a Yew application.
-///
-/// Required environment variables:
-/// - BASE_URL: The base URL of your site (e.g., "https://example.com")
-///
-/// Optional environment variables:
-/// - SITE_NAME: The name of your site
-/// - DEFAULT_OG_IMAGE: URL to the default Open Graph image
-/// - TWITTER_HANDLE: Your Twitter handle (e.g., "@username")
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    println!("🏗️ Configuring static site generator...");
+    // Initialize logger with custom format
+    Builder::from_env(Env::default().default_filter_or("info"))
+        .format(|buf, record| {
+            use chrono::Local;
+            use std::io::Write;
+
+            let level_style = buf.default_level_style(record.level());
+            writeln!(
+                buf,
+                "{} {} {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S"),
+                level_style.value(record.level()),
+                record.args()
+            )
+        })
+        .init();
+
+    info!("🏗️ Configuring static site generator...");
 
     // --- Load Environment Configuration ---
     let config = load_config()?;
@@ -50,10 +60,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // 3. Add SEO generators
     builder = add_generators(builder);
 
+    // 4. Add processors
+    builder = add_processors(builder);
+
     // --- Build and Run the Generator ---
     let generator = StaticSiteGenerator::new(builder.build())?;
 
-    println!("🚀 Starting static site generation...");
+    info!("🚀 Starting static site generation...");
 
     // Generate the static site
     generator.generate::<Route, _>(switch_route).await?;
@@ -64,7 +77,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Configuration loaded from environment variables
+#[derive(Debug)]
 struct SiteConfig {
     base_url: String,
     site_name: String,
@@ -76,6 +89,10 @@ struct SiteConfig {
 fn load_config() -> Result<SiteConfig, Box<dyn Error>> {
     // Get required BASE_URL
     let base_url = env::var(ENV_BASE_URL).map_err(|_| {
+        error!(
+            "Environment variable {} must be set (e.g., https://example.com)",
+            ENV_BASE_URL
+        );
         format!(
             "Environment variable {} must be set (e.g., https://example.com)",
             ENV_BASE_URL
@@ -90,11 +107,12 @@ fn load_config() -> Result<SiteConfig, Box<dyn Error>> {
     let twitter_handle = env::var(ENV_TWITTER).unwrap_or_default();
 
     // Log configuration
-    println!("  Base URL: {}", base_url);
-    println!("  Site Name: {}", site_name);
-    println!("  Default OG Image: {}", default_og_image);
+    info!("Configuration:");
+    info!("  Base URL: {}", base_url);
+    info!("  Site Name: {}", site_name);
+    info!("  Default OG Image: {}", default_og_image);
     if !twitter_handle.is_empty() {
-        println!("  Twitter Handle: {}", twitter_handle);
+        info!("  Twitter Handle: {}", twitter_handle);
     }
 
     Ok(SiteConfig {
@@ -123,39 +141,6 @@ fn create_global_metadata(config: &SiteConfig) -> HashMap<String, String> {
     metadata
 }
 
-/// Add metadata for each route in the application
-fn add_route_metadata(builder: SsgConfigBuilder, base_url: &str) -> SsgConfigBuilder {
-    let mut builder = builder;
-
-    println!("  Configuring route metadata...");
-
-    for route in Route::iter() {
-        let path = route.to_path();
-        let mut route_meta = HashMap::new();
-
-        // Set title and description based on route
-        let (title, description) = get_route_meta_content(&route);
-        route_meta.insert("title".to_string(), title.to_string());
-        route_meta.insert("description".to_string(), description.to_string());
-
-        // Set canonical URL and OG URL
-        let absolute_url = format!("{}{}", base_url, path);
-        route_meta.insert("canonical".to_string(), absolute_url.clone());
-        route_meta.insert("url".to_string(), absolute_url);
-
-        // Handle robots directive (no indexing for 404 page)
-        if route == Route::NotFound {
-            route_meta.insert("robots".to_string(), "noindex, nofollow".to_string());
-        } else {
-            route_meta.insert("robots".to_string(), "index, follow".to_string());
-        }
-
-        builder = builder.route_metadata(&path, route_meta);
-    }
-
-    builder
-}
-
 /// Get title and description for a specific route
 fn get_route_meta_content(route: &Route) -> (&'static str, &'static str) {
     match route {
@@ -180,7 +165,7 @@ fn get_route_meta_content(route: &Route) -> (&'static str, &'static str) {
 
 /// Add SEO generators to the configuration
 fn add_generators(builder: SsgConfigBuilder) -> SsgConfigBuilder {
-    println!("  Adding SEO generators...");
+    info!("Adding SEO generators...");
 
     builder
         // Title tag generator
@@ -206,12 +191,58 @@ fn add_generators(builder: SsgConfigBuilder) -> SsgConfigBuilder {
         })
 }
 
-/// Print success information after generation
+fn add_route_metadata(builder: SsgConfigBuilder, base_url: &str) -> SsgConfigBuilder {
+    let mut builder = builder;
+
+    info!("Configuring route metadata...");
+
+    for route in Route::iter() {
+        let path = route.to_path();
+        let mut route_meta = HashMap::new();
+
+        // Set title and description based on route
+        let (title, description) = get_route_meta_content(&route);
+        route_meta.insert("title".to_string(), title.to_string());
+        route_meta.insert("description".to_string(), description.to_string());
+
+        // Set canonical URL and OG URL
+        let absolute_url = format!("{}{}", base_url, path);
+        route_meta.insert("canonical".to_string(), absolute_url.clone());
+        route_meta.insert("url".to_string(), absolute_url);
+
+        // Handle robots directive (no indexing for 404 page)
+        if route == Route::NotFound {
+            route_meta.insert("robots".to_string(), "noindex, nofollow".to_string());
+            warn!("404 page will not be indexed: {}", path);
+        } else {
+            route_meta.insert("robots".to_string(), "index, follow".to_string());
+        }
+
+        builder = builder.route_metadata(&path, route_meta);
+    }
+
+    builder
+}
+
+fn add_processors(mut builder: SsgConfigBuilder) -> SsgConfigBuilder {
+    info!("Adding processors...");
+
+    // Create and configure the attribute processor
+    let mut attribute_processor = AttributeProcessor::new("data-ssg");
+    attribute_processor = attribute_processor.with_default_handlers();
+    attribute_processor.configure_for_generators(&builder.config.generators);
+
+    // Add the configured processors
+    builder
+        .add_processor(attribute_processor)
+        .add_processor(TemplateVariableProcessor::new())
+}
+
 fn print_success_info(generator: &StaticSiteGenerator) {
-    println!("\n✅ Static site generation complete! Check the 'dist' directory.");
+    info!("\n✅ Static site generation complete! Check the 'dist' directory.");
 
     // Show page summary
-    println!("\n📊 Generated Pages:");
+    info!("\n📊 Generated Pages:");
     for route in Route::iter() {
         let path = route.to_path();
         let meta = generator.config.get_metadata_for_route(&path);
@@ -219,18 +250,18 @@ fn print_success_info(generator: &StaticSiteGenerator) {
             .get("title")
             .cloned()
             .unwrap_or_else(|| "N/A".to_string());
-        println!("  📄 {} - '{}'", path, title);
+        info!("  📄 {} - '{}'", path, title);
     }
 
-    // Show enabled generators - using the new iterator functionality
-    println!("\n✨ SEO Features Enabled via Generators:");
-    for gen in &generator.config.generators {
-        println!("  ✓ {}", gen.name());
+    // Show enabled generators
+    info!("\n✨ SEO Generators Enabled:");
+    for generator in &generator.config.generators {
+        info!("  ✓ {}", generator.name());
     }
-    
-    // Display more detailed information about each generator
-    println!("\n📋 Generator Details:");
-    for (name, type_name) in generator.config.generators.iter_info() {
-        println!("  ✓ {} ({})", name, type_name);
+
+    // Show enabled processors
+    info!("\n🔧 Content Processors Enabled:");
+    for processor in &generator.config.processors {
+        info!("  ✓ {}", processor.name());
     }
 }

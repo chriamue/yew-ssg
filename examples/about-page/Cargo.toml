@@ -20,7 +20,10 @@ strum_macros = "0.26.3"
 yew-ssg = { path = "../..", optional = true }
 tokio = { version = "1.0", features = ["full"], optional = true }
 markdown = "1.0.0-alpha.23"
+log = "0.4"
+env_logger = { version = "0.10", optional = true }
+chrono = "0.4"
 
 [features]
 default = []
-ssg = ["yew/ssr", "yew-ssg", "tokio"]
+ssg = ["yew/ssr", "yew-ssg", "tokio", "env_logger"]
