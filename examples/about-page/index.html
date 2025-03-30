@@ -1,11 +1,38 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <title>{{ title }}</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <!-- Title with development fallback -->
+        <title data-ssg="title">Yew SSG Example</title>
+
+        <!-- Description with development fallback -->
+        <meta
+            name="description"
+            data-ssg="description"
+            content="A Yew application with SSG support"
+        />
+
+        <!-- Keywords with development fallback -->
+        <meta
+            name="keywords"
+            data-ssg="keywords"
+            content="yew, rust, ssg, webdev"
+        />
+
+        <!-- Placeholder elements for SEO content -->
+        <meta data-ssg-placeholder="meta_tags" content="seo-tags" />
+        <meta data-ssg-placeholder="open_graph" content="og-tags" />
+        <meta data-ssg-placeholder="twitter_card" content="twitter-tags" />
+        <meta data-ssg-placeholder="robots_meta" content="robots-directive" />
+
+        <!-- Development assets (these will work with trunk serve) -->
         <link data-trunk rel="css" href="style.css" />
         <link data-trunk rel="rust" href="Cargo.toml" />
     </head>
     <body>
-        {{ content }}
+        <!-- Default content container - will be populated by Trunk or SSG -->
+        <div id="app" data-ssg="content"></div>
     </body>
 </html>
