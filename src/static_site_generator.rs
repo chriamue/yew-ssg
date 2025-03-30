@@ -1,4 +1,5 @@
 use crate::config::SsgConfig;
+use crate::processors::{HtmlElementProcessor, TemplateVariableProcessor};
 use log::{info, warn};
 use minijinja::Environment;
 use std::collections::HashMap;
@@ -87,7 +88,18 @@ impl StaticSiteGenerator {
             info!("Using built-in default HTML template");
         }
 
-        info!("Template initialized from {}", template_source);
+        let mut config = config;
+        if config.processors.is_empty() {
+            info!("Adding default processors");
+
+            // Add HTML element processor for placeholder elements
+            let html_processor = HtmlElementProcessor::new("data-ssg");
+            config.processors.add(html_processor);
+
+            // Add template variable processor for {{var}} syntax
+            let variable_processor = TemplateVariableProcessor::new();
+            config.processors.add(variable_processor);
+        }
 
         Ok(Self {
             config,

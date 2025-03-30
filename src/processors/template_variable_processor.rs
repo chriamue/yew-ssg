@@ -1,24 +1,25 @@
 use crate::processor::Processor;
-use log::warn;
-use regex::Regex;
+use log::debug;
 use std::collections::HashMap;
 use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct TemplateVariableProcessor {
-    title_fallback_pattern: Option<String>,
+    start_delimiter: String,
+    end_delimiter: String,
 }
 
 impl TemplateVariableProcessor {
     pub fn new() -> Self {
         Self {
-            title_fallback_pattern: Some("Page: {path}".to_string()),
+            start_delimiter: "{{".to_string(),
+            end_delimiter: "}}".to_string(),
         }
     }
 
-    /// Set a custom title fallback pattern using {path} as a placeholder
-    pub fn with_title_fallback(mut self, pattern: Option<String>) -> Self {
-        self.title_fallback_pattern = pattern;
+    pub fn with_delimiters(mut self, start: &str, end: &str) -> Self {
+        self.start_delimiter = start.to_string();
+        self.end_delimiter = end.to_string();
         self
     }
 }
@@ -35,39 +36,35 @@ impl Processor for TemplateVariableProcessor {
         generator_outputs: &HashMap<String, String>,
         _content: &str,
     ) -> Result<String, Box<dyn Error>> {
-        // Check if a title is either in metadata, generator outputs, or existing HTML
-        let has_title = metadata.contains_key("title")
-            || generator_outputs.contains_key("title")
-            || html.contains("<title>");
+        let mut result = html.to_string();
+        let mut replacements = Vec::new();
 
-        // If there's no title but we have a fallback pattern, add a title
-        if !has_title && self.title_fallback_pattern.is_some() {
-            let path = metadata
-                .get("path")
-                .cloned()
-                .unwrap_or_else(|| "".to_string());
-            let fallback_title = self
-                .title_fallback_pattern
-                .as_ref()
-                .unwrap()
-                .replace("{path}", &path);
-
-            // If there's a <head> tag, add the title inside it
-            let with_title = if html.contains("<head>") {
-                let re = Regex::new(r"<head>").unwrap();
-                re.replace(html, &format!("<head>\n<title>{}</title>", fallback_title))
-                    .to_string()
-            } else {
-                // If there's no head tag, warn but don't modify
-                warn!("No <head> tag found to insert title for path: {}", path);
-                html.to_string()
-            };
-
-            Ok(with_title)
-        } else {
-            // No changes needed
-            Ok(html.to_string())
+        // Process all generator outputs first (higher priority)
+        for (key, value) in generator_outputs {
+            let variable = format!("{}{}{}", self.start_delimiter, key, self.end_delimiter);
+            if result.contains(&variable) {
+                replacements.push((variable, value.clone()));
+            }
         }
+
+        // Then process metadata values (lower priority)
+        for (key, value) in metadata {
+            let variable = format!("{}{}{}", self.start_delimiter, key, self.end_delimiter);
+            if result.contains(&variable) {
+                // Only add if not already replaced by a generator output
+                if !replacements.iter().any(|(var, _)| var == &variable) {
+                    replacements.push((variable, value.clone()));
+                }
+            }
+        }
+
+        // Apply all replacements
+        for (var, replacement) in replacements {
+            debug!("Replacing template variable: {} -> {}", var, replacement);
+            result = result.replace(&var, &replacement);
+        }
+
+        Ok(result)
     }
 
     fn clone_box(&self) -> Box<dyn Processor> {
@@ -81,53 +78,80 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
-    fn test_template_variable_processor_with_fallback() {
+    fn test_variable_substitution() {
         let processor = TemplateVariableProcessor::new();
 
-        let html = r#"<!DOCTYPE html><html><head></head><body><div id="app"></div></body></html>"#;
+        let html = r#"<!DOCTYPE html>
+        <html>
+        <head>
+            <title>{{title}}</title>
+            {{meta_tags}}
+            {{open_graph}}
+        </head>
+        <body>
+            <h1>{{title}}</h1>
+            <p>{{description}}</p>
+        </body>
+        </html>"#;
+
         let mut metadata = HashMap::new();
-        metadata.insert("path".to_string(), "/test".to_string());
+        metadata.insert("title".to_string(), "My Page Title".to_string());
+        metadata.insert("description".to_string(), "Page description".to_string());
 
-        let generator_outputs = HashMap::new();
+        let mut generator_outputs = HashMap::new();
+        generator_outputs.insert(
+            "meta_tags".to_string(),
+            "<meta name=\"description\" content=\"SEO description\">".to_string(),
+        );
+        generator_outputs.insert(
+            "open_graph".to_string(),
+            "<meta property=\"og:title\" content=\"OG Title\">".to_string(),
+        );
 
-        let processed = processor
+        let result = processor
             .process(html, &metadata, &generator_outputs, "")
             .unwrap();
 
-        assert!(processed.contains("<title>Page: /test</title>"));
+        assert!(result.contains("<title>My Page Title</title>"));
+        assert!(result.contains("<h1>My Page Title</h1>"));
+        assert!(result.contains("<p>Page description</p>"));
+        assert!(result.contains("<meta name=\"description\" content=\"SEO description\">"));
+        assert!(result.contains("<meta property=\"og:title\" content=\"OG Title\">"));
     }
 
     #[test]
-    fn test_template_variable_processor_with_existing_title() {
-        let processor = TemplateVariableProcessor::new();
+    fn test_custom_delimiters() {
+        let processor = TemplateVariableProcessor::new().with_delimiters("${", "}");
 
-        let html = r#"<!DOCTYPE html><html><head><title>Existing Title</title></head><body><div id="app"></div></body></html>"#;
-        let metadata = HashMap::new();
-        let generator_outputs = HashMap::new();
+        let html = r#"<div>${title}</div>"#;
 
-        let processed = processor
-            .process(html, &metadata, &generator_outputs, "")
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Custom Delimiters".to_string());
+
+        let result = processor
+            .process(html, &metadata, &HashMap::new(), "")
             .unwrap();
 
-        assert!(processed.contains("<title>Existing Title</title>"));
-        assert!(!processed.contains("Page:"));
+        assert_eq!(result, "<div>Custom Delimiters</div>");
     }
 
     #[test]
-    fn test_template_variable_processor_without_head() {
+    fn test_priority_generator_over_metadata() {
         let processor = TemplateVariableProcessor::new();
 
-        let html = r#"<!DOCTYPE html><html><body><div id="app"></div></body></html>"#;
+        let html = "<title>{{title}}</title>";
+
         let mut metadata = HashMap::new();
-        metadata.insert("path".to_string(), "/test".to_string());
+        metadata.insert("title".to_string(), "Metadata Title".to_string());
 
-        let generator_outputs = HashMap::new();
+        let mut generator_outputs = HashMap::new();
+        generator_outputs.insert("title".to_string(), "Generator Title".to_string());
 
-        let processed = processor
+        let result = processor
             .process(html, &metadata, &generator_outputs, "")
             .unwrap();
 
-        assert!(!processed.contains("<title>Page: /test</title>"));
-        assert!(processed.contains("<body><div id=\"app\"></div></body>"));
+        // Generator output should take precedence
+        assert_eq!(result, "<title>Generator Title</title>");
     }
 }
