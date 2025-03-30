@@ -1,5 +1,6 @@
 use crate::generator::Generator;
 use crate::processors::{AttributeSupport, TemplateVariableSupport};
+use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -9,6 +10,10 @@ pub struct TitleGenerator;
 impl Generator for TitleGenerator {
     fn name(&self) -> &'static str {
         "title"
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
     fn generate(

@@ -1,5 +1,6 @@
 use crate::generator::Generator;
 use crate::processors::{AttributeSupport, TemplateVariableSupport};
+use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -11,6 +12,10 @@ pub struct RobotsMetaGenerator {
 impl Generator for RobotsMetaGenerator {
     fn name(&self) -> &'static str {
         "robots_meta"
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
     fn generate(

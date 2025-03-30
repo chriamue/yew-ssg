@@ -1,5 +1,6 @@
 use crate::generator::Generator;
 use crate::processors::{AttributeSupport, TemplateVariableSupport};
+use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -12,6 +13,10 @@ pub struct MetaTagGenerator {
 impl Generator for MetaTagGenerator {
     fn name(&self) -> &'static str {
         "meta_tags"
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
     fn generate(

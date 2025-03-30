@@ -1,5 +1,6 @@
 use crate::generator::Generator;
 use crate::processors::{AttributeSupport, TemplateVariableSupport};
+use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -36,6 +37,10 @@ impl Default for TwitterCardGenerator {
 impl Generator for TwitterCardGenerator {
     fn name(&self) -> &'static str {
         "twitter_card"
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
     fn generate(

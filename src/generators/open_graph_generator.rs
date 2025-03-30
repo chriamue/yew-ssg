@@ -1,5 +1,6 @@
 use crate::generator::Generator;
 pub use crate::processors::{AttributeSupport, TemplateVariableSupport};
+use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -12,6 +13,10 @@ pub struct OpenGraphGenerator {
 impl Generator for OpenGraphGenerator {
     fn name(&self) -> &'static str {
         "open_graph"
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
     fn generate(

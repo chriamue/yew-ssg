@@ -1,5 +1,6 @@
 use crate::generator_collection::GeneratorCollection;
 use crate::processor::Processor;
+use crate::processors::AttributeSupport;
 use log::debug;
 use regex::Regex;
 use std::collections::HashMap;
@@ -53,7 +54,7 @@ impl AttributeProcessor {
     }
 
     /// Register a handler for a specific attribute
-    pub fn register_attribute_handler<F>(&mut self, attr_name: &str, handler: F) -> &mut Self
+    pub fn register_attribute_handler<F>(mut self, attr_name: &str, handler: F) -> Self
     where
         F: Fn(&str, &str, &HashMap<String, String>) -> String + Send + Sync + 'static,
     {
@@ -63,7 +64,7 @@ impl AttributeProcessor {
     }
 
     /// Register a handler for a placeholder attribute for a specific generator
-    pub fn register_placeholder_handler<F>(&mut self, generator_name: &str, handler: F) -> &mut Self
+    pub fn register_placeholder_handler<F>(mut self, generator_name: &str, handler: F) -> Self
     where
         F: Fn(&str, &str) -> String + Send + Sync + 'static,
     {
@@ -73,7 +74,7 @@ impl AttributeProcessor {
     }
 
     /// Register a handler for the content area
-    pub fn register_content_handler<F>(&mut self, handler: F) -> &mut Self
+    pub fn register_content_handler<F>(mut self, handler: F) -> Self
     where
         F: Fn(&str, &str) -> String + Send + Sync + 'static,
     {
@@ -82,21 +83,21 @@ impl AttributeProcessor {
     }
 
     /// Add default handlers for common attributes
-    pub fn with_default_handlers(mut self) -> Self {
+    pub fn with_default_handlers(self) -> Self {
         let prefix_clone = self.prefix.clone();
 
         // Title handler
-        self.register_attribute_handler("title", move |html, value, _| {
+        let title_handler = move |html: &str, value: &str, _: &HashMap<String, String>| {
             let pattern = format!(r#"<title {}="title">[^<]*</title>"#, prefix_clone);
             let re = Regex::new(&pattern).unwrap();
             re.replace_all(html, &format!("<title>{}</title>", value))
                 .to_string()
-        });
+        };
 
         let prefix_clone = self.prefix.clone();
 
         // Description meta tag handler
-        self.register_attribute_handler("description", move |html, value, _| {
+        let desc_handler = move |html: &str, value: &str, _: &HashMap<String, String>| {
             let pattern = format!(
                 r#"<meta name="description" {}="description" content="[^"]*""#,
                 prefix_clone
@@ -107,12 +108,28 @@ impl AttributeProcessor {
                 &format!(r#"<meta name="description" content="{}""#, value),
             )
             .to_string()
-        });
+        };
+
+        let prefix_clone = self.prefix.clone();
+
+        // Keywords meta tag handler
+        let keywords_handler = move |html: &str, value: &str, _: &HashMap<String, String>| {
+            let pattern = format!(
+                r#"<meta name="keywords" {}="keywords" content="[^"]*""#,
+                prefix_clone
+            );
+            let re = Regex::new(&pattern).unwrap();
+            re.replace_all(
+                html,
+                &format!(r#"<meta name="keywords" content="{}""#, value),
+            )
+            .to_string()
+        };
 
         let prefix_clone = self.prefix.clone();
 
         // Default content handler
-        self.register_content_handler(move |html, content| {
+        let content_handler = move |html: &str, content: &str| {
             let pattern = format!(r#"<div id="app" {}="content">.*?</div>"#, prefix_clone);
             let re = Regex::new(&pattern).unwrap();
 
@@ -129,27 +146,56 @@ impl AttributeProcessor {
             empty_re
                 .replace_all(html, &format!(r#"<div id="app">{}</div>"#, content))
                 .to_string()
-        });
+        };
 
-        self
+        self.register_attribute_handler("title", title_handler)
+            .register_attribute_handler("description", desc_handler)
+            .register_attribute_handler("keywords", keywords_handler)
+            .register_content_handler(content_handler)
     }
 
     /// Configure placeholder handlers based on available generators
-    pub fn configure_for_generators(&mut self, generators: &GeneratorCollection) -> &mut Self {
+    pub fn configure_for_generators(mut self, generators: &GeneratorCollection) -> Self {
         let prefix = Arc::new(self.prefix.clone());
 
         for generator in generators.iter() {
+            // Configure handlers for generator output placeholders
             let generator_name = generator.name().to_string();
-            let prefix = Arc::clone(&prefix);
+            let prefix_clone = Arc::clone(&prefix);
 
-            self.register_placeholder_handler(&generator_name.clone(), move |html, value| {
-                let pattern = format!(
-                    r#"<meta {}-placeholder="{}" [^>]*>"#,
-                    prefix, generator_name
-                );
-                let re = Regex::new(&pattern).unwrap();
-                re.replace_all(html, value).to_string()
-            });
+            self =
+                self.register_placeholder_handler(&generator_name.clone(), move |html, value| {
+                    let pattern = format!(
+                        r#"<meta {}-placeholder="{}" [^>]*>"#,
+                        prefix_clone, generator_name
+                    );
+                    let re = Regex::new(&pattern).unwrap();
+                    re.replace_all(html, value).to_string()
+                });
+
+            // If generator implements AttributeSupport, register attribute handlers
+            if let Some(attr_support) = generator
+                .as_any()
+                .downcast_ref::<Box<dyn AttributeSupport>>()
+            {
+                for attr_name in attr_support.attributes() {
+                    let prefix_clone = Arc::clone(&prefix);
+
+                    self = self.register_attribute_handler(attr_name, move |html, value, _| {
+                        let pattern = format!(r#"<[^>]+ {}="{}"[^>]*>"#, prefix_clone, attr_name);
+                        let re = Regex::new(&pattern).unwrap();
+
+                        // If pattern matches, replace with generator output or value
+                        if re.is_match(html) {
+                            // Generate replacement based on attribute
+                            // This could be a more complex function that calls back to the generator
+                            let replacement = format!("<{}>{}</{}>", attr_name, value, attr_name);
+                            return re.replace_all(html, &replacement).to_string();
+                        }
+                        html.to_string()
+                    });
+                }
+            }
         }
 
         self
@@ -213,6 +259,8 @@ mod tests {
     use super::*;
     use crate::generator::Generator;
     use crate::generator_collection::GeneratorCollection;
+    use crate::processors::AttributeSupport;
+    use std::any::Any;
     use std::error::Error;
 
     // Mock Generator for testing
@@ -246,6 +294,16 @@ mod tests {
         fn clone_box(&self) -> Box<dyn Generator> {
             Box::new(self.clone())
         }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+
+    impl AttributeSupport for MockGenerator {
+        fn attributes(&self) -> Vec<&'static str> {
+            vec!["mock_attr"]
+        }
     }
 
     #[test]
@@ -278,11 +336,13 @@ mod tests {
     #[test]
     fn test_attribute_processor_generator_placeholders() {
         // Setup
-        let mut processor = AttributeProcessor::new("data-test").with_default_handlers();
         let mut generators = GeneratorCollection::new();
         generators.add(MockGenerator::new("meta"));
         generators.add(MockGenerator::new("og"));
-        processor.configure_for_generators(&generators);
+
+        let processor = AttributeProcessor::new("data-test")
+            .with_default_handlers()
+            .configure_for_generators(&generators);
 
         let html = r#"<!DOCTYPE html><html><head><meta data-test-placeholder="meta" content="default">
             <meta data-test-placeholder="og" content="default"></head><body><div id="app" data-test="content"></div></body></html>"#;
@@ -310,19 +370,22 @@ mod tests {
     #[test]
     fn test_attribute_processor_mixed() {
         // Setup
-        let mut processor = AttributeProcessor::new("data-custom");
-        processor.register_attribute_handler("custom_attr", |html, value, _| {
-            let pattern = format!(r#"<div data-custom="custom_attr" data-custom-value="[^"]*""#);
-            let re = Regex::new(&pattern).unwrap();
-            re.replace_all(
-                html,
-                &format!(
-                    r#"<div data-custom="custom_attr" data-custom-value="{}""#,
-                    value
-                ),
-            )
-            .to_string()
-        });
+        let processor = AttributeProcessor::new("data-custom").register_attribute_handler(
+            "custom_attr",
+            |html, value, _| {
+                let pattern =
+                    format!(r#"<div data-custom="custom_attr" data-custom-value="[^"]*""#);
+                let re = Regex::new(&pattern).unwrap();
+                re.replace_all(
+                    html,
+                    &format!(
+                        r#"<div data-custom="custom_attr" data-custom-value="{}""#,
+                        value
+                    ),
+                )
+                .to_string()
+            },
+        );
 
         let html = r#"<div data-custom="custom_attr" data-custom-value="original"></div>"#;
         let mut metadata = HashMap::new();
