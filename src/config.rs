@@ -13,6 +13,21 @@ pub struct SsgConfig {
     pub generators: GeneratorCollection,
 }
 
+impl SsgConfig {
+    /// Get combined metadata for a specific route, merging global and route-specific metadata.
+    /// Route-specific metadata takes precedence.
+    pub fn get_metadata_for_route(&self, route_path: &str) -> HashMap<String, String> {
+        let mut metadata = self.global_metadata.clone();
+
+        if let Some(route_specific) = self.route_metadata.get(route_path) {
+            // Route-specific metadata overrides global metadata
+            metadata.extend(route_specific.clone());
+        }
+
+        metadata
+    }
+}
+
 impl Default for SsgConfig {
     fn default() -> Self {
         Self {
@@ -27,9 +42,10 @@ impl Default for SsgConfig {
 }
 
 pub struct SsgConfigBuilder {
-    config: SsgConfig,
+    pub config: SsgConfig,
 }
 
+// Ensure the method is INSIDE this block
 impl SsgConfigBuilder {
     pub fn new() -> Self {
         Self {
@@ -44,6 +60,16 @@ impl SsgConfigBuilder {
 
     pub fn template<P: Into<PathBuf>>(mut self, path: P) -> Self {
         self.config.template_path = Some(path.into());
+        // Clear default_template if a path is provided? Optional decision.
+        // self.config.default_template = String::new();
+        self
+    }
+
+    // Add a method to set the default template string directly
+    pub fn default_template_string(mut self, template_content: String) -> Self {
+        self.config.default_template = template_content;
+        // Clear template_path if string content is provided? Optional decision.
+        // self.config.template_path = None;
         self
     }
 

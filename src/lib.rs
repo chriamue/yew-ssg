@@ -15,9 +15,10 @@ pub mod prelude {
 
     pub use crate::generator::Generator;
     pub use crate::generator_collection::GeneratorCollection;
-    pub use crate::generators::MetaTagGenerator;
-    pub use crate::generators::OpenGraphGenerator;
-    pub use crate::generators::TwitterCardGenerator;
+    pub use crate::generators::{
+        MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator,
+        TwitterCardGenerator,
+    };
 
     pub use crate::static_site_generator::StaticSiteGenerator;
 }

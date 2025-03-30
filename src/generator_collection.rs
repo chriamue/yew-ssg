@@ -1,10 +1,11 @@
 use crate::generator::Generator;
 use std::collections::HashMap;
 use std::error::Error;
+use std::slice::Iter;
 
 #[derive(Debug, Clone)]
 pub struct GeneratorCollection {
-    generators: Vec<Box<dyn Generator>>,
+    pub(crate) generators: Vec<Box<dyn Generator>>,
 }
 
 impl GeneratorCollection {
@@ -32,5 +33,29 @@ impl GeneratorCollection {
         }
 
         Ok(results)
+    }
+
+    /// Returns the number of generators in the collection
+    pub fn len(&self) -> usize {
+        self.generators.len()
+    }
+
+    /// Returns true if the collection is empty
+    pub fn is_empty(&self) -> bool {
+        self.generators.is_empty()
+    }
+
+    /// Returns an iterator over the generators
+    pub fn iter(&self) -> Iter<'_, Box<dyn Generator>> {
+        self.generators.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a GeneratorCollection {
+    type Item = &'a Box<dyn Generator>;
+    type IntoIter = Iter<'a, Box<dyn Generator>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.generators.iter()
     }
 }
