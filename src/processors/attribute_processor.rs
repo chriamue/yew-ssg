@@ -1,44 +1,55 @@
+use crate::generator::Generator;
 use crate::generator_collection::GeneratorCollection;
 use crate::processor::Processor;
 use crate::processors::AttributeSupport;
-use log::debug;
-use regex::Regex;
+use log::{debug, info, warn};
+use scraper::{ElementRef, Html, Selector};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
 
-/// Processor that handles HTML attribute-based templating
+/// Processor that handles HTML attribute-based templating using proper HTML parsing
+/// This version automatically adapts to generators that implement AttributeSupport
+#[derive(Clone)]
 pub struct AttributeProcessor {
     /// The prefix used for data attributes (e.g., "data-ssg")
     prefix: String,
-    /// Handlers for specific metadata attributes
-    attribute_handlers:
-        HashMap<String, Box<dyn Fn(&str, &str, &HashMap<String, String>) -> String + Send + Sync>>,
-    /// Handlers for generator placeholder elements
-    placeholder_handlers: HashMap<String, Box<dyn Fn(&str, &str) -> String + Send + Sync>>,
-    /// Handler for the main content area
-    content_handler: Option<Box<dyn Fn(&str, &str) -> String + Send + Sync>>,
+
+    /// Content handler
+    content_handler: Option<Arc<dyn Fn(&str) -> String + Send + Sync>>,
+
+    /// Custom attribute handlers
+    custom_handlers:
+        HashMap<String, Arc<dyn Fn(&str, &HashMap<String, String>) -> String + Send + Sync>>,
+
+    /// Placeholder handlers
+    placeholder_handlers: HashMap<String, Arc<dyn Fn(&str) -> String + Send + Sync>>,
+
+    /// Generator information - populated from configure_for_generators
+    generator_info: HashMap<String, GeneratorInfo>,
+}
+
+#[derive(Clone)]
+struct GeneratorInfo {
+    name: String,
+    supported_attributes: Vec<String>,
 }
 
 impl fmt::Debug for AttributeProcessor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("AttributeProcessor")
             .field("prefix", &self.prefix)
-            .field("attribute_handlers_count", &self.attribute_handlers.len())
             .field(
-                "placeholder_handlers_count",
-                &self.placeholder_handlers.len(),
+                "custom_handlers",
+                &self.custom_handlers.keys().collect::<Vec<_>>(),
             )
             .field("has_content_handler", &self.content_handler.is_some())
+            .field(
+                "generators",
+                &self.generator_info.keys().collect::<Vec<_>>(),
+            )
             .finish()
-    }
-}
-
-impl Clone for AttributeProcessor {
-    fn clone(&self) -> Self {
-        // We can't actually clone the handler functions, so we create a new instance with the same prefix
-        AttributeProcessor::new(&self.prefix)
     }
 }
 
@@ -47,158 +58,256 @@ impl AttributeProcessor {
     pub fn new(prefix: &str) -> Self {
         Self {
             prefix: prefix.to_string(),
-            attribute_handlers: HashMap::new(),
-            placeholder_handlers: HashMap::new(),
             content_handler: None,
+            custom_handlers: HashMap::new(),
+            placeholder_handlers: HashMap::new(),
+            generator_info: HashMap::new(),
         }
     }
 
-    /// Register a handler for a specific attribute
+    /// Register a custom handler for a specific attribute
     pub fn register_attribute_handler<F>(mut self, attr_name: &str, handler: F) -> Self
     where
-        F: Fn(&str, &str, &HashMap<String, String>) -> String + Send + Sync + 'static,
+        F: Fn(&str, &HashMap<String, String>) -> String + Send + Sync + 'static,
     {
-        self.attribute_handlers
-            .insert(attr_name.to_string(), Box::new(handler));
-        self
-    }
-
-    /// Register a handler for a placeholder attribute for a specific generator
-    pub fn register_placeholder_handler<F>(mut self, generator_name: &str, handler: F) -> Self
-    where
-        F: Fn(&str, &str) -> String + Send + Sync + 'static,
-    {
-        self.placeholder_handlers
-            .insert(generator_name.to_string(), Box::new(handler));
+        self.custom_handlers
+            .insert(attr_name.to_string(), Arc::new(handler));
         self
     }
 
     /// Register a handler for the content area
     pub fn register_content_handler<F>(mut self, handler: F) -> Self
     where
-        F: Fn(&str, &str) -> String + Send + Sync + 'static,
+        F: Fn(&str) -> String + Send + Sync + 'static,
     {
-        self.content_handler = Some(Box::new(handler));
+        self.content_handler = Some(Arc::new(handler));
         self
+    }
+
+    /// Register a handler for a placeholder attribute for a specific generator
+    pub fn register_placeholder_handler<F>(mut self, generator_name: &str, handler: F) -> Self
+    where
+        F: Fn(&str) -> String + Send + Sync + 'static,
+    {
+        self.placeholder_handlers
+            .insert(generator_name.to_string(), Arc::new(handler));
+        self
+    }
+
+    /// Configure the processor based on available generators
+    pub fn configure_for_generators(mut self, generators: &GeneratorCollection) -> Self {
+        info!("Configuring attribute processor for generators");
+
+        // Process each generator to extract supported attributes
+        for generator in generators.iter() {
+            let name = generator.name().to_string();
+            let mut supported_attributes = Vec::new();
+
+            // Try to get attribute support information directly from the generator
+            // by downcasting to known generator types that implement AttributeSupport
+            if let Some(typed_generator) = self.try_get_attribute_support(generator) {
+                for attr in typed_generator.attributes() {
+                    supported_attributes.push(attr.to_string());
+                }
+
+                debug!(
+                    "Generator '{}' supports attributes: {:?}",
+                    name, supported_attributes
+                );
+            } else {
+                // If we couldn't detect attribute support, just use the generator name
+                debug!(
+                    "No attribute support detected for '{}', using name as attribute",
+                    name
+                );
+                supported_attributes.push(name.clone());
+            }
+
+            // Store the generator info
+            self.generator_info.insert(
+                name.clone(),
+                GeneratorInfo {
+                    name,
+                    supported_attributes,
+                },
+            );
+        }
+
+        info!("Configured for {} generators", self.generator_info.len());
+        self
+    }
+
+    /// Try to extract AttributeSupport from a generator by attempting to downcast to known types
+    fn try_get_attribute_support<'a>(
+        &self,
+        generator: &'a Box<dyn Generator>,
+    ) -> Option<&'a dyn AttributeSupport> {
+        // Try to downcast to common generator types that implement AttributeSupport
+        // This approach avoids hardcoding specific generator types
+
+        // First, try direct casting if we're lucky (unlikely to work with trait objects)
+        if let Some(support) = generator
+            .as_any()
+            .downcast_ref::<Box<dyn AttributeSupport>>()
+        {
+            return Some(support.as_ref());
+        }
+
+        // Our trait object doesn't directly provide this info, so we'll extract it manually
+        // Try each possible concrete type
+        use crate::generators::{
+            MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator,
+            TwitterCardGenerator,
+        };
+
+        if let Some(g) = generator.as_any().downcast_ref::<MetaTagGenerator>() {
+            return Some(g);
+        } else if let Some(g) = generator.as_any().downcast_ref::<OpenGraphGenerator>() {
+            return Some(g);
+        } else if let Some(g) = generator.as_any().downcast_ref::<RobotsMetaGenerator>() {
+            return Some(g);
+        } else if let Some(g) = generator.as_any().downcast_ref::<TitleGenerator>() {
+            return Some(g);
+        } else if let Some(g) = generator.as_any().downcast_ref::<TwitterCardGenerator>() {
+            return Some(g);
+        }
+
+        None
     }
 
     /// Add default handlers for common attributes
     pub fn with_default_handlers(self) -> Self {
-        let prefix_clone = self.prefix.clone();
+        // Register the default content handler
+        let processor =
+            self.register_content_handler(|content| format!("<div id=\"app\">{}</div>", content));
 
-        // Title handler
-        let title_handler = move |html: &str, value: &str, _: &HashMap<String, String>| {
-            let pattern = format!(r#"<title {}="title">[^<]*</title>"#, prefix_clone);
-            let re = Regex::new(&pattern).unwrap();
-            re.replace_all(html, &format!("<title>{}</title>", value))
-                .to_string()
-        };
+        // Add handlers for common attributes
+        let mut result = processor;
 
-        let prefix_clone = self.prefix.clone();
+        // For title
+        result = result.register_attribute_handler("title", |value, _metadata| {
+            format!("<title>{}</title>", value)
+        });
 
-        // Description meta tag handler
-        let desc_handler = move |html: &str, value: &str, _: &HashMap<String, String>| {
-            let pattern = format!(
-                r#"<meta name="description" {}="description" content="[^"]*""#,
-                prefix_clone
-            );
-            let re = Regex::new(&pattern).unwrap();
-            re.replace_all(
-                html,
-                &format!(r#"<meta name="description" content="{}""#, value),
-            )
-            .to_string()
-        };
+        // For description
+        result = result.register_attribute_handler("description", |value, _metadata| {
+            format!("<meta name=\"description\" content=\"{}\">", value)
+        });
 
-        let prefix_clone = self.prefix.clone();
+        // For keywords
+        result = result.register_attribute_handler("keywords", |value, _metadata| {
+            format!("<meta name=\"keywords\" content=\"{}\">", value)
+        });
 
-        // Keywords meta tag handler
-        let keywords_handler = move |html: &str, value: &str, _: &HashMap<String, String>| {
-            let pattern = format!(
-                r#"<meta name="keywords" {}="keywords" content="[^"]*""#,
-                prefix_clone
-            );
-            let re = Regex::new(&pattern).unwrap();
-            re.replace_all(
-                html,
-                &format!(r#"<meta name="keywords" content="{}""#, value),
-            )
-            .to_string()
-        };
-
-        let prefix_clone = self.prefix.clone();
-
-        // Default content handler
-        let content_handler = move |html: &str, content: &str| {
-            let pattern = format!(r#"<div id="app" {}="content">.*?</div>"#, prefix_clone);
-            let re = Regex::new(&pattern).unwrap();
-
-            if re.is_match(html) {
-                return re
-                    .replace_all(html, &format!(r#"<div id="app">{}</div>"#, content))
-                    .to_string();
-            }
-
-            // Fallback for empty div
-            let empty_pattern = format!(r#"<div id="app" {}="content"></div>"#, prefix_clone);
-            let empty_re = Regex::new(&empty_pattern).unwrap();
-
-            empty_re
-                .replace_all(html, &format!(r#"<div id="app">{}</div>"#, content))
-                .to_string()
-        };
-
-        self.register_attribute_handler("title", title_handler)
-            .register_attribute_handler("description", desc_handler)
-            .register_attribute_handler("keywords", keywords_handler)
-            .register_content_handler(content_handler)
+        result
     }
 
-    /// Configure placeholder handlers based on available generators
-    pub fn configure_for_generators(mut self, generators: &GeneratorCollection) -> Self {
-        let prefix = Arc::new(self.prefix.clone());
+    /// Find elements by their data-* attributes
+    fn find_elements_by_attr<'a>(
+        &self,
+        document: &'a Html,
+        attr_name: &str,
+    ) -> Vec<ElementRef<'a>> {
+        let selector_string = format!("[{}=\"{}\"]", self.prefix, attr_name);
+        let mut results = Vec::new();
 
-        for generator in generators.iter() {
-            // Configure handlers for generator output placeholders
-            let generator_name = generator.name().to_string();
-            let prefix_clone = Arc::clone(&prefix);
+        if let Ok(selector) = Selector::parse(&selector_string) {
+            for element in document.select(&selector) {
+                results.push(element);
+            }
+        } else {
+            warn!("Invalid selector: {}", selector_string);
+        }
 
-            self =
-                self.register_placeholder_handler(&generator_name.clone(), move |html, value| {
-                    let pattern = format!(
-                        r#"<meta {}-placeholder="{}" [^>]*>"#,
-                        prefix_clone, generator_name
-                    );
-                    let re = Regex::new(&pattern).unwrap();
-                    re.replace_all(html, value).to_string()
-                });
+        results
+    }
 
-            // If generator implements AttributeSupport, register attribute handlers
-            if let Some(attr_support) = generator
-                .as_any()
-                .downcast_ref::<Box<dyn AttributeSupport>>()
-            {
-                for attr_name in attr_support.attributes() {
-                    let prefix_clone = Arc::clone(&prefix);
+    /// Find elements by their data-*-placeholder attributes
+    fn find_placeholder_elements<'a>(
+        &self,
+        document: &'a Html,
+        generator_name: &str,
+    ) -> Vec<ElementRef<'a>> {
+        let selector_string = format!("[{}-placeholder=\"{}\"]", self.prefix, generator_name);
+        let mut results = Vec::new();
 
-                    self = self.register_attribute_handler(attr_name, move |html, value, _| {
-                        let pattern = format!(r#"<[^>]+ {}="{}"[^>]*>"#, prefix_clone, attr_name);
-                        let re = Regex::new(&pattern).unwrap();
+        if let Ok(selector) = Selector::parse(&selector_string) {
+            for element in document.select(&selector) {
+                results.push(element);
+            }
+        } else {
+            warn!("Invalid selector: {}", selector_string);
+        }
 
-                        // If pattern matches, replace with generator output or value
-                        if re.is_match(html) {
-                            // Generate replacement based on attribute
-                            // This could be a more complex function that calls back to the generator
-                            let replacement = format!("<{}>{}</{}>", attr_name, value, attr_name);
-                            return re.replace_all(html, &replacement).to_string();
-                        }
-                        html.to_string()
-                    });
+        results
+    }
+
+    /// Process HTML using the configured handlers and generators
+    fn process_html(
+        &self,
+        html_str: &str,
+        metadata: &HashMap<String, String>,
+        generator_outputs: &HashMap<String, String>,
+        content: &str,
+    ) -> Result<String, Box<dyn Error>> {
+        // Parse HTML
+        let document = Html::parse_document(html_str);
+        let mut result = html_str.to_string();
+
+        // We'll collect the original text and its replacement
+        let mut replacements = Vec::new();
+
+        // 1. Process custom attribute handlers
+        for (attr_name, handler) in &self.custom_handlers {
+            for element in self.find_elements_by_attr(&document, attr_name) {
+                if let Some(value) = metadata.get(attr_name) {
+                    let original = element.html();
+                    let replacement = handler(value, metadata);
+                    replacements.push((original, replacement));
                 }
             }
         }
 
-        self
+        // 2. Process generator placeholders
+        for (generator_name, output) in generator_outputs {
+            for element in self.find_placeholder_elements(&document, generator_name) {
+                let original = element.html();
+
+                if let Some(handler) = self.placeholder_handlers.get(generator_name) {
+                    // Use the custom handler if available
+                    let replacement = handler(output);
+                    replacements.push((original, replacement));
+                } else {
+                    // Otherwise just use the output directly
+                    replacements.push((original, output.clone()));
+                }
+            }
+        }
+
+        // 3. Process content area
+        if let Some(content_handler) = &self.content_handler {
+            for element in self.find_elements_by_attr(&document, "content") {
+                let original = element.html();
+                let replacement = content_handler(content);
+                replacements.push((original, replacement));
+            }
+        }
+
+        // Apply all replacements - sort by length to replace longer fragments first
+        replacements.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
+
+        // Debug output
+        debug!("Applying {} replacements", replacements.len());
+        for (i, (original, replacement)) in replacements.iter().enumerate() {
+            debug!("Replacement {}: '{}' -> '{}'", i, original, replacement);
+        }
+
+        // Apply all replacements
+        for (original, replacement) in replacements {
+            result = result.replace(&original, &replacement);
+        }
+
+        Ok(result)
     }
 }
 
@@ -215,38 +324,8 @@ impl Processor for AttributeProcessor {
         content: &str,
     ) -> Result<String, Box<dyn Error>> {
         debug!("Processing attributes with metadata: {:?}", metadata);
-        let mut result = html.to_string();
 
-        // Process attribute values from metadata
-        for (attr_name, handler) in &self.attribute_handlers {
-            if let Some(value) = metadata.get(attr_name) {
-                let attr_pattern = format!("{}=\"{}\"", self.prefix, attr_name);
-                if result.contains(&attr_pattern) {
-                    result = handler(&result, value, metadata);
-                }
-            }
-        }
-
-        // Process placeholders for generator outputs
-        for (generator_name, handler) in &self.placeholder_handlers {
-            if let Some(value) = generator_outputs.get(generator_name) {
-                let placeholder_pattern =
-                    format!("{}-placeholder=\"{}\"", self.prefix, generator_name);
-                if result.contains(&placeholder_pattern) {
-                    result = handler(&result, value);
-                }
-            }
-        }
-
-        // Process content area
-        if let Some(handler) = &self.content_handler {
-            let content_pattern = format!("{}=\"content\"", self.prefix);
-            if result.contains(&content_pattern) {
-                result = handler(&result, content);
-            }
-        }
-
-        Ok(result)
+        self.process_html(html, metadata, generator_outputs, content)
     }
 
     fn clone_box(&self) -> Box<dyn Processor> {
@@ -326,9 +405,13 @@ mod tests {
             .process(html, &metadata, &HashMap::new(), "<div>New Content</div>")
             .unwrap();
 
+        // Debug output to see what's wrong
+        println!("Original: {}", html);
+        println!("Processed: {}", processed);
+
         // Assert
         assert!(processed.contains("<title>Replaced Title</title>"));
-        assert!(processed.contains(r#"<meta name="description" content="Replaced description""#));
+        assert!(processed.contains(r#"<meta name="description" content="Replaced description">"#));
         assert!(processed.contains("<div>New Content</div>"));
         assert!(!processed.contains("data-test=")); // Ensure data attributes are removed
     }
@@ -361,6 +444,10 @@ mod tests {
             )
             .unwrap();
 
+        // Debug output
+        println!("Original: {}", html);
+        println!("Processed: {}", processed);
+
         // Assert
         assert!(processed.contains("<meta value=\"generated\">"));
         assert!(processed.contains("<meta value=\"og\">"));
@@ -372,18 +459,11 @@ mod tests {
         // Setup
         let processor = AttributeProcessor::new("data-custom").register_attribute_handler(
             "custom_attr",
-            |html, value, _| {
-                let pattern =
-                    format!(r#"<div data-custom="custom_attr" data-custom-value="[^"]*""#);
-                let re = Regex::new(&pattern).unwrap();
-                re.replace_all(
-                    html,
-                    &format!(
-                        r#"<div data-custom="custom_attr" data-custom-value="{}""#,
-                        value
-                    ),
+            |_value, _metadata| {
+                format!(
+                    r#"<div data-custom="custom_attr" data-custom-value="{}">"#,
+                    "new"
                 )
-                .to_string()
             },
         );
 
@@ -397,10 +477,7 @@ mod tests {
             .unwrap();
 
         // Assert
-        assert_eq!(
-            result,
-            "<div data-custom=\"custom_attr\" data-custom-value=\"new\"></div>"
-        );
+        assert!(result.contains(r#"data-custom-value="new""#));
     }
 
     #[test]

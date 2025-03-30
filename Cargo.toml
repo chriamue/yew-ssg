@@ -17,3 +17,5 @@ strum = "0.26.3"
 yew = { version = "0.21", features = ["ssr"] }
 yew-router = "0.18"
 regex = "1.7.0"
+scraper = "0.23.1"
+html5ever = "0.30.0"
