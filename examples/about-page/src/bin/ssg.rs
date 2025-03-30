@@ -1,7 +1,7 @@
 use about_page::route::Route;
 use about_page::switch_route::switch_route;
 use env_logger::{Builder, Env};
-use log::{error, info, warn};
+use log::{error, info};
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
@@ -204,16 +204,16 @@ fn add_route_metadata(builder: SsgConfigBuilder, base_url: &str) -> SsgConfigBui
         let (title, description) = get_route_meta_content(&route);
         route_meta.insert("title".to_string(), title.to_string());
         route_meta.insert("description".to_string(), description.to_string());
+        route_meta.insert("keywords".to_string(), DEFAULT_KEYWORDS.to_string());
 
         // Set canonical URL and OG URL
         let absolute_url = format!("{}{}", base_url, path);
         route_meta.insert("canonical".to_string(), absolute_url.clone());
         route_meta.insert("url".to_string(), absolute_url);
 
-        // Handle robots directive (no indexing for 404 page)
+        // Handle robots directive
         if route == Route::NotFound {
             route_meta.insert("robots".to_string(), "noindex, nofollow".to_string());
-            warn!("404 page will not be indexed: {}", path);
         } else {
             route_meta.insert("robots".to_string(), "index, follow".to_string());
         }
@@ -227,15 +227,33 @@ fn add_route_metadata(builder: SsgConfigBuilder, base_url: &str) -> SsgConfigBui
 fn add_processors(mut builder: SsgConfigBuilder) -> SsgConfigBuilder {
     info!("Adding processors...");
 
-    // Create and configure the attribute processor
-    let mut attribute_processor = AttributeProcessor::new("data-ssg");
-    attribute_processor = attribute_processor.with_default_handlers();
-    attribute_processor.configure_for_generators(&builder.config.generators);
+    // Create attribute processor for main content
+    let main_processor = AttributeProcessor::new("data-ssg")
+        .register_attribute_handler("title", |value, _metadata| {
+            format!("<title>{}</title>", value)
+        })
+        .register_attribute_handler("description", |value, _metadata| {
+            format!("<meta name=\"description\" content=\"{}\">", value)
+        })
+        .register_attribute_handler("keywords", |value, _metadata| {
+            format!("<meta name=\"keywords\" content=\"{}\">", value)
+        })
+        .register_content_handler(|content| format!("<div id=\"app\">{}</div>", content));
 
-    // Add the configured processors
+    // Create attribute processor for placeholders
+    let placeholder_processor = AttributeProcessor::new("data-ssg")
+        .register_placeholder_handler("meta_tags", |value| value.to_string())
+        .register_placeholder_handler("open_graph", |value| value.to_string())
+        .register_placeholder_handler("twitter_card", |value| value.to_string())
+        .register_placeholder_handler("robots_meta", |value| value.to_string());
+
+    // Add the processors to the builder
+    builder = builder
+        .add_processor(main_processor)
+        .add_processor(placeholder_processor)
+        .add_processor(TemplateVariableProcessor::new());
+
     builder
-        .add_processor(attribute_processor)
-        .add_processor(TemplateVariableProcessor::new())
 }
 
 fn print_success_info(generator: &StaticSiteGenerator) {
