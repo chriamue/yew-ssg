@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // --- Configure the SSG Builder ---
     let mut builder = SsgConfigBuilder::new()
         .output_dir("dist")
-        .template("index.html");
+        .template("dist/index.html");
 
     // 1. Add global metadata
     builder = builder.global_metadata(create_global_metadata(&config));
@@ -224,11 +224,11 @@ fn add_route_metadata(builder: SsgConfigBuilder, base_url: &str) -> SsgConfigBui
     builder
 }
 
-fn add_processors(mut builder: SsgConfigBuilder) -> SsgConfigBuilder {
+fn add_processors(builder: SsgConfigBuilder) -> SsgConfigBuilder {
     info!("Adding processors...");
 
-    // Create attribute processor for main content
-    let main_processor = AttributeProcessor::new("data-ssg")
+    // Create attribute processor for content and common attributes
+    let content_processor = AttributeProcessor::new("data-ssg")
         .register_attribute_handler("title", |value, _metadata| {
             format!("<title>{}</title>", value)
         })
@@ -240,20 +240,17 @@ fn add_processors(mut builder: SsgConfigBuilder) -> SsgConfigBuilder {
         })
         .register_content_handler(|content| format!("<div id=\"app\">{}</div>", content));
 
-    // Create attribute processor for placeholders
-    let placeholder_processor = AttributeProcessor::new("data-ssg")
-        .register_placeholder_handler("meta_tags", |value| value.to_string())
-        .register_placeholder_handler("open_graph", |value| value.to_string())
-        .register_placeholder_handler("twitter_card", |value| value.to_string())
-        .register_placeholder_handler("robots_meta", |value| value.to_string());
+    // Add the new HtmlElementProcessor for placeholder elements
+    let html_processor = HtmlElementProcessor::new("data-ssg");
 
-    // Add the processors to the builder
-    builder = builder
-        .add_processor(main_processor)
-        .add_processor(placeholder_processor)
-        .add_processor(TemplateVariableProcessor::new());
+    // Add standard variable processor
+    let variable_processor = TemplateVariableProcessor::new();
 
+    // Add all processors
     builder
+        .add_processor(content_processor)
+        .add_processor(html_processor) // New processor for data-ssg-placeholder elements
+        .add_processor(variable_processor) // For {{variable}} substitution
 }
 
 fn print_success_info(generator: &StaticSiteGenerator) {
