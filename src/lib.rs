@@ -28,6 +28,9 @@ pub mod prelude {
         TwitterCardGenerator,
     };
 
+    // Processor implementations
+    pub use crate::processors::{AttributeProcessor, TemplateVariableProcessor};
+
     // Static site generator
     pub use crate::static_site_generator::StaticSiteGenerator;
 }
