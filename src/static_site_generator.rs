@@ -257,7 +257,17 @@ impl StaticSiteGenerator {
         }
 
         // Render the template with Minijinja
-        Ok(tmpl.render(context)?)
+        let rendered_template = tmpl.render(context)?;
+
+        // Apply processors to the rendered template
+        let processed_html = self.config.processors.process_all(
+            &rendered_template,
+            &metadata,
+            &generator_outputs,
+            content,
+        )?;
+
+        Ok(processed_html)
     }
 }
 
@@ -386,5 +396,131 @@ mod tests {
         let (dir, file) = generator.determine_output_path("/blog/post-1");
         assert_eq!(dir, PathBuf::from("dist/blog/post-1"));
         assert_eq!(file, PathBuf::from("dist/blog/post-1/index.html"));
+    }
+
+    #[test]
+    fn test_data_ssg_attribute_replacement_in_pipeline() {
+        use crate::processor::Processor;
+        use crate::processors::AttributeProcessor;
+
+        // Our test "content" is HTML with data-ssg attributes
+        let content_with_attributes = r#"<div data-ssg="content"></div>"#;
+
+        // Set up metadata
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Replaced Title".to_string());
+        metadata.insert(
+            "description".to_string(),
+            "Replaced description".to_string(),
+        );
+
+        // Create a processor and process the content directly
+        let attribute_processor = AttributeProcessor::new("data-ssg").with_default_handlers();
+        let processed_content = attribute_processor
+            .process(
+                content_with_attributes,
+                &metadata,
+                &HashMap::new(),
+                "<p>Page content</p>", // The actual content to insert
+            )
+            .unwrap();
+
+        println!("Processed content: {}", processed_content);
+
+        // Now check the processed content has the attributes replaced
+        assert!(processed_content.contains("<div id=\"app\"><p>Page content</p></div>"));
+        assert!(!processed_content.contains("data-ssg=")); // Ensure data attributes are removed
+
+        // Now let's test the full pipeline with a MiniJinja template
+        let template = r#"<html lang="en">
+        <head>
+            <title>{{ title }}</title>
+            <meta name="description" content="{{ description }}">
+        </head>
+        <body>
+            {{ content | safe }}
+        </body>
+    </html>"#;
+
+        let config = SsgConfigBuilder::new()
+            .output_dir("test_dist")
+            .default_template_string(template.to_string())
+            .build();
+
+        let ssg = StaticSiteGenerator::new(config).unwrap();
+
+        // The content we pass to wrap_html is already processed by our processor
+        let result = ssg
+            .wrap_html(&processed_content, "/test-page", &metadata, &HashMap::new())
+            .unwrap();
+
+        println!("Wrapped HTML: {}", result);
+
+        // Verify everything is in place
+        assert!(result.contains("<title>Replaced Title</title>"));
+        assert!(result.contains(r#"<meta name="description" content="Replaced description">"#));
+        assert!(result.contains("<div id=\"app\"><p>Page content</p></div>"));
+    }
+
+    #[test]
+    fn test_data_ssg_attribute_replacement() {
+        use crate::processor::Processor;
+        use crate::processors::AttributeProcessor;
+
+        // Create template with data-ssg attribute
+        let template = r#"<html lang="en">
+        <head>
+            <title data-ssg="title">Default Title</title>
+            <meta name="description" data-ssg="description" data-ssg-a="content" content="Default description">
+        </head>
+        <body>
+            <div data-ssg="content"></div>
+        </body>
+    </html>"#;
+
+        // Set up metadata
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Replaced Title".to_string());
+        metadata.insert(
+            "description".to_string(),
+            "Replaced description".to_string(),
+        );
+
+        // Process the template with our AttributeProcessor
+        let attribute_processor = AttributeProcessor::new("data-ssg").with_default_handlers();
+        let processed_template = attribute_processor
+            .process(template, &metadata, &HashMap::new(), "<p>Page content</p>")
+            .unwrap();
+
+        // Verify the processor worked
+        assert!(processed_template.contains("<title>Replaced Title</title>"));
+        assert!(processed_template.contains("content=\"Replaced description\""));
+        assert!(!processed_template.contains("data-ssg="));
+
+        // Now set up the SSG with the processed template
+        let config = SsgConfigBuilder::new()
+            .output_dir("test_dist")
+            .default_template_string(processed_template)
+            .build();
+
+        let ssg = StaticSiteGenerator::new(config).unwrap();
+
+        // Process the template through the SSG
+        let result = ssg
+            .wrap_html(
+                "<p>More content</p>",
+                "/test-page",
+                &metadata,
+                &HashMap::new(),
+            )
+            .unwrap();
+
+        // Debug output
+        println!("Final HTML: {}", result);
+
+        // Verify the final HTML contains our replacements
+        assert!(result.contains("<title>Replaced Title</title>"));
+        assert!(result.contains("content=\"Replaced description\""));
+        assert!(!result.contains("data-ssg="));
     }
 }
