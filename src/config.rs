@@ -1,5 +1,7 @@
 use crate::generator::Generator;
 use crate::generator_collection::GeneratorCollection;
+use crate::processor::Processor;
+use crate::processor_collection::ProcessorCollection;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -11,6 +13,7 @@ pub struct SsgConfig {
     pub global_metadata: HashMap<String, String>,
     pub route_metadata: HashMap<String, HashMap<String, String>>,
     pub generators: GeneratorCollection,
+    pub processors: ProcessorCollection,
 }
 
 impl SsgConfig {
@@ -37,6 +40,7 @@ impl Default for SsgConfig {
             global_metadata: HashMap::new(),
             route_metadata: HashMap::new(),
             generators: GeneratorCollection::new(),
+            processors: ProcessorCollection::new(),
         }
     }
 }
@@ -87,6 +91,11 @@ impl SsgConfigBuilder {
 
     pub fn add_generator<G: Generator + 'static>(mut self, generator: G) -> Self {
         self.config.generators.add(generator);
+        self
+    }
+
+    pub fn add_processor<P: Processor + 'static>(mut self, processor: P) -> Self {
+        self.config.processors.add(processor);
         self
     }
 

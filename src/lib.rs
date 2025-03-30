@@ -2,6 +2,9 @@ pub mod config;
 pub mod generator;
 pub mod generator_collection;
 pub mod generators;
+pub mod processor;
+pub mod processor_collection;
+pub mod processors;
 pub mod static_site_generator;
 
 pub use config::SsgConfig;
@@ -15,7 +18,9 @@ pub mod prelude {
 
     // Core traits and components
     pub use crate::generator::Generator;
-    pub use crate::generator_collection::{GeneratorCollection, GeneratorInfoIterator};
+    pub use crate::generator_collection::GeneratorCollection;
+    pub use crate::processor::Processor;
+    pub use crate::processor_collection::ProcessorCollection;
 
     // Generator implementations
     pub use crate::generators::{

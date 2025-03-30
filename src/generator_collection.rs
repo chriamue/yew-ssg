@@ -68,32 +68,3 @@ impl<'a> IntoIterator for &'a GeneratorCollection {
         self.generators.iter()
     }
 }
-/// Iterator that yields information about generators (name and type)
-pub struct GeneratorInfoIterator<'a> {
-    inner: Iter<'a, Box<dyn Generator>>,
-}
-
-impl<'a> Iterator for GeneratorInfoIterator<'a> {
-    type Item = (&'a str, &'static str); // (name, type_name)
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|gen| {
-            (
-                gen.name(),
-                std::any::type_name_of_val(&**gen)
-                    .split("::")
-                    .last()
-                    .unwrap_or("Unknown"),
-            )
-        })
-    }
-}
-
-impl GeneratorCollection {
-    /// Returns an iterator that yields (name, type_name) pairs for each generator
-    pub fn iter_info(&self) -> GeneratorInfoIterator<'_> {
-        GeneratorInfoIterator {
-            inner: self.generators.iter(),
-        }
-    }
-}
