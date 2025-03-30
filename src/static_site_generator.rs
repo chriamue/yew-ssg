@@ -1,4 +1,5 @@
 use crate::config::SsgConfig;
+use log::{info, warn};
 use minijinja::Environment;
 use std::collections::HashMap;
 use std::error::Error;
@@ -65,10 +66,10 @@ impl StaticSiteGenerator {
                         template_loaded = true;
                         template_source = format!("file ({:?})", path);
                     }
-                    Err(e) => eprintln!("Warning: Failed to read template: {}", e),
+                    Err(e) => warn!("Failed to read template: {}", e),
                 }
             } else {
-                eprintln!("Warning: Template path {:?} does not exist", path);
+                warn!("Template path {:?} does not exist", path);
             }
         }
 
@@ -83,10 +84,10 @@ impl StaticSiteGenerator {
         // 3. Fallback to built-in default template
         if !template_loaded {
             env.add_template("base", DEFAULT_TEMPLATE)?;
-            eprintln!("Info: Using built-in default HTML template");
+            info!("Using built-in default HTML template");
         }
 
-        println!("Info: Template initialized from {}", template_source);
+        info!("Template initialized from {}", template_source);
 
         Ok(Self {
             config,
@@ -105,7 +106,7 @@ impl StaticSiteGenerator {
 
         for route in R::iter() {
             let route_path = route.to_path();
-            println!("Generating route: {}", route_path);
+            info!("Generating route: {}", route_path);
 
             // 1. Render the Yew component to HTML
             let content = self.render_route(&route, switch_fn.clone()).await?;
@@ -137,7 +138,7 @@ impl StaticSiteGenerator {
             let (dir_path, file_path) = self.determine_output_path(&route_path);
             fs::create_dir_all(&dir_path)?;
             fs::write(&file_path, html)?;
-            println!("  -> Saved to {:?}", file_path);
+            info!("  -> Saved to {:?}", file_path);
         }
 
         Ok(())
@@ -235,7 +236,7 @@ impl StaticSiteGenerator {
             template_context
                 .values
                 .insert("title".to_string(), fallback_title);
-            eprintln!("Warning: No title provided for route '{}'", path);
+            warn!("No title provided for route '{}'", path);
         }
 
         // Create the context with references to our stored values

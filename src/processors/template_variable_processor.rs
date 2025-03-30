@@ -1,4 +1,5 @@
 use crate::processor::Processor;
+use log::warn;
 use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
@@ -58,7 +59,7 @@ impl Processor for TemplateVariableProcessor {
                     .to_string()
             } else {
                 // If there's no head tag, warn but don't modify
-                eprintln!("Warning: No <head> tag found to insert title");
+                warn!("No <head> tag found to insert title for path: {}", path);
                 html.to_string()
             };
 

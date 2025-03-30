@@ -1,5 +1,6 @@
 use crate::generator_collection::GeneratorCollection;
 use crate::processor::Processor;
+use log::debug;
 use regex::Regex;
 use std::collections::HashMap;
 use std::error::Error;
@@ -167,6 +168,7 @@ impl Processor for AttributeProcessor {
         generator_outputs: &HashMap<String, String>,
         content: &str,
     ) -> Result<String, Box<dyn Error>> {
+        debug!("Processing attributes with metadata: {:?}", metadata);
         let mut result = html.to_string();
 
         // Process attribute values from metadata
