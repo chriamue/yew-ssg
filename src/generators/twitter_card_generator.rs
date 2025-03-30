@@ -1,4 +1,5 @@
 use crate::generator::Generator;
+use crate::processors::{AttributeSupport, TemplateVariableSupport};
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -171,6 +172,33 @@ impl Generator for TwitterCardGenerator {
 
     fn clone_box(&self) -> Box<dyn Generator> {
         Box::new(self.clone())
+    }
+}
+
+impl AttributeSupport for TwitterCardGenerator {
+    fn attributes(&self) -> Vec<&'static str> {
+        vec!["twitter_card"]
+    }
+}
+
+impl TemplateVariableSupport for TwitterCardGenerator {
+    fn template_variables(&self) -> Vec<&'static str> {
+        vec![
+            "twitter:card",
+            "twitter:site",
+            "twitter:creator",
+            "twitter:title",
+            "twitter:description",
+            "twitter:image",
+            "twitter:image:alt",
+            "twitter:player",
+            "twitter:player:width",
+            "twitter:player:height",
+            "twitter:app:id:iphone",
+            "twitter:app:name:iphone",
+            "twitter:app:id:googleplay",
+            "twitter:app:name:googleplay",
+        ]
     }
 }
 

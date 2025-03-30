@@ -1,4 +1,5 @@
 use crate::generator::Generator;
+use crate::processors::{AttributeSupport, TemplateVariableSupport};
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -54,6 +55,18 @@ impl Generator for MetaTagGenerator {
 
     fn clone_box(&self) -> Box<dyn Generator> {
         Box::new(self.clone())
+    }
+}
+
+impl AttributeSupport for MetaTagGenerator {
+    fn attributes(&self) -> Vec<&'static str> {
+        vec!["meta_tags"]
+    }
+}
+
+impl TemplateVariableSupport for MetaTagGenerator {
+    fn template_variables(&self) -> Vec<&'static str> {
+        vec!["description", "keywords", "canonical"]
     }
 }
 

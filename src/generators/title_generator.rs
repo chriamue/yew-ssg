@@ -1,4 +1,5 @@
 use crate::generator::Generator;
+use crate::processors::{AttributeSupport, TemplateVariableSupport};
 use std::collections::HashMap;
 use std::error::Error;
 
@@ -22,6 +23,18 @@ impl Generator for TitleGenerator {
 
     fn clone_box(&self) -> Box<dyn Generator> {
         Box::new(self.clone())
+    }
+}
+
+impl AttributeSupport for TitleGenerator {
+    fn attributes(&self) -> Vec<&'static str> {
+        vec!["title"]
+    }
+}
+
+impl TemplateVariableSupport for TitleGenerator {
+    fn template_variables(&self) -> Vec<&'static str> {
+        vec!["title"]
     }
 }
 
