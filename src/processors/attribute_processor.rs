@@ -197,55 +197,6 @@ impl AttributeProcessor {
         result
     }
 
-    /// Find elements by their data-* attributes
-    fn find_elements_by_attr<'a>(
-        &self,
-        document: &'a Html,
-        attr_name: &str,
-    ) -> Vec<ElementRef<'a>> {
-        let selector_string = format!("[{}=\"{}\"]", self.prefix, attr_name);
-        let mut results = Vec::new();
-
-        if let Ok(selector) = Selector::parse(&selector_string) {
-            for element in document.select(&selector) {
-                results.push(element);
-            }
-        } else {
-            warn!("Invalid selector: {}", selector_string);
-        }
-
-        trace!(
-            "Found {} elements for selector '{}'",
-            results.len(),
-            selector_string
-        );
-        for (i, element) in results.iter().enumerate() {
-            trace!("Element {}: {}", i, element.html());
-        }
-
-        results
-    }
-
-    /// Find elements by their data-*-placeholder attributes
-    fn find_placeholder_elements<'a>(
-        &self,
-        document: &'a Html,
-        generator_name: &str,
-    ) -> Vec<ElementRef<'a>> {
-        let selector_string = format!("[{}-placeholder=\"{}\"]", self.prefix, generator_name);
-        let mut results = Vec::new();
-
-        if let Ok(selector) = Selector::parse(&selector_string) {
-            for element in document.select(&selector) {
-                results.push(element);
-            }
-        } else {
-            warn!("Invalid selector: {}", selector_string);
-        }
-
-        results
-    }
-
     /// Process HTML using the configured handlers and generators
     fn process_html(
         &self,
