@@ -6,9 +6,12 @@ A static site generator for Yew applications that helps you pre-render your Yew 
 
 - 🚀 Pre-renders Yew applications to static HTML
 - 🔄 Works with yew-router for multi-page applications
-- 📝 Customizable HTML templates
-- 🧩 Plugin system for extensibility
-- 🔍 SEO-friendly output with metadata support
+- 📝 Customizable HTML templates with variable substitution
+- 🎯 Advanced attribute-based templating system
+- 🧩 Extensible generator plugin system
+- 🔍 Built-in SEO generators (meta tags, Open Graph, Twitter Cards)
+- 🤖 Robots meta tag support
+- 🔀 Flexible processing pipeline
 
 ## Installation
 
@@ -41,31 +44,27 @@ Example SSG binary:
 ```rust
 use my_app::route::Route;
 use my_app::switch_route::switch_route;
-use std::fs;
-use yew_ssg::StaticSiteGenerator;
+use yew_ssg::prelude::*;
+use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
-    // Load template or use default
-    let template = fs::read_to_string("dist/index.html")
-        .unwrap_or_else(|_| {
-            println!("Using default template");
-            r#"<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="utf-8">
-        <title>{{ title }}</title>
-        <link rel="stylesheet" href="/styles.css">
-        <script defer src="/app.js"></script>
-    </head>
-    <body>
-        <div id="app">{{ content }}</div>
-    </body>
-</html>"#.to_string()
-        });
+    // Configure the SSG
+    let config = SsgConfigBuilder::new()
+        .output_dir("dist")
+        // Add built-in generators
+        .add_generator(MetaTagGenerator {
+            default_description: "My site description".to_string(),
+            default_keywords: vec!["yew".to_string(), "rust".to_string()],
+        })
+        .add_generator(OpenGraphGenerator {
+            site_name: "My Site".to_string(),
+            default_image: "/images/default.jpg".to_string(),
+        })
+        .build();
 
     // Initialize the generator
-    let generator = StaticSiteGenerator::with_template("dist", &template)
+    let generator = StaticSiteGenerator::new(config)
         .expect("Failed to create generator");
 
     // Generate static files
@@ -76,80 +75,155 @@ async fn main() {
 }
 ```
 
-## Advanced Usage
+## Template System
 
-### Custom Templates
+### Basic Template Variables
 
-You can provide a custom HTML template with placeholders:
+Use double curly braces for variable substitution:
 
-- `{{ content }}` - The rendered Yew content
-- `{{ title }}` - Page title (from route)
-- `{{ description }}` - Page description
-- `{{ path }}` - Route path
+```html
+<title>{{ title }}</title>
+<meta name="description" content="{{ description }}">
+```
 
-### Metadata Support
+### Attribute-Based Templating
 
-Using the `SsgConfigBuilder`, you can add global and per-route metadata:
+The attribute processor provides three powerful ways to template your HTML:
+
+1. `data-ssg`: Direct content replacement
+2. `data-ssg-a`: Attribute value replacement
+3. `data-ssg-placeholder`: Generator output placement
+
+#### Content Replacement with data-ssg
+
+Replace element content with metadata values:
+
+```html
+<title data-ssg="title">Default Title</title>
+<h1 data-ssg="page_heading">Default Heading</h1>
+```
+
+#### Attribute Replacement with data-ssg-a
+
+Update specific attributes with metadata values:
+
+```html
+<meta name="description"
+      data-ssg="description"
+      data-ssg-a="content"
+      content="Default description">
+
+<link rel="canonical"
+      data-ssg="canonical_url"
+      data-ssg-a="href"
+      href="https://example.com">
+```
+
+#### Generator Output Placement with data-ssg-placeholder
+
+Place generator outputs in specific locations:
+
+```html
+<!-- Meta tags will be inserted here -->
+<meta data-ssg-placeholder="meta_tags" content="">
+
+<!-- Open Graph tags will be inserted here -->
+<meta data-ssg-placeholder="open_graph" content="">
+
+<!-- Twitter Card tags will be inserted here -->
+<meta data-ssg-placeholder="twitter_card" content="">
+```
+
+### Metadata Configuration
+
+Add global and route-specific metadata:
 
 ```rust
 let config = SsgConfigBuilder::new()
     .output_dir("dist")
     .global_metadata(HashMap::from([
         ("site_name".to_string(), "My Awesome Site".to_string()),
+        ("author".to_string(), "Jane Doe".to_string()),
     ]))
     .route_metadata("/about", HashMap::from([
         ("title".to_string(), "About Us".to_string()),
         ("description".to_string(), "Learn about our company".to_string()),
+        ("canonical_url".to_string(), "https://example.com/about".to_string()),
     ]))
     .build();
 ```
 
-### Generator Plugins
+### Built-in Generators
 
-Implement custom generators to extend functionality:
+yew-ssg includes several built-in generators:
+
+- `MetaTagGenerator`: Basic meta tags
+- `OpenGraphGenerator`: Open Graph protocol tags
+- `TwitterCardGenerator`: Twitter Card meta tags
+- `RobotsMetaGenerator`: Robots meta tag
+- `TitleGenerator`: HTML title tag
+
+Example configuration:
+
+```rust
+let config = SsgConfigBuilder::new()
+    .add_generator(MetaTagGenerator {
+        default_description: "Site description".to_string(),
+        default_keywords: vec!["rust".to_string(), "yew".to_string()],
+    })
+    .add_generator(OpenGraphGenerator {
+        site_name: "My Site".to_string(),
+        default_image: "/images/og-default.jpg".to_string(),
+    })
+    .add_generator(TwitterCardGenerator {
+        twitter_site: Some("@mysite".to_string()),
+        default_card_type: "summary_large_image".to_string(),
+    })
+    .build();
+```
+
+### Custom Generators
+
+Implement your own generators:
 
 ```rust
 #[derive(Debug, Clone)]
-pub struct MyCustomGenerator;
+pub struct CustomGenerator;
 
-#[async_trait]
-impl Generator for MyCustomGenerator {
+impl Generator for CustomGenerator {
     fn name(&self) -> &'static str {
-        "custom"
+        "custom_generator"
     }
 
-    async fn generate(
+    fn generate(
         &self,
         route: &str,
         content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {
-        // Custom generation logic
-        Ok(format!("<custom>{}</custom>", metadata.get("custom").unwrap_or(&String::new())))
+        Ok(format!("<custom-element>{}</custom-element>",
+                  metadata.get("custom").unwrap_or(&String::new())))
     }
 
-    fn box_clone(&self) -> Box<dyn Generator + Send + Sync> {
+    fn clone_box(&self) -> Box<dyn Generator> {
         Box::new(self.clone())
     }
-}
 
-// Add to config
-let config = SsgConfigBuilder::new()
-    .add_generator(MyCustomGenerator)
-    .build();
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 ```
 
 ## Example Projects
 
 Check out the examples directory for complete project examples:
 
-- `examples/about-page`: Simple multi-page site with home and about pages
-- `examples/blog`: Blog with markdown content
-- `examples/portfolio`: Portfolio site with dynamic routing
+- `examples/about-page`: Basic example
 
 ## Contributing
 
-Contributions welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
