@@ -1,7 +1,13 @@
 use crate::generator::Generator;
 use crate::generator_collection::GeneratorCollection;
+use crate::generators::{
+    MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator, TwitterCardGenerator,
+};
 use crate::processor::Processor;
 use crate::processor_collection::ProcessorCollection;
+use crate::processors::{
+    AttributeProcessor, HtmlElementProcessor, PlaceholderProcessor, TemplateVariableProcessor,
+};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -29,6 +35,61 @@ impl SsgConfig {
 
         metadata
     }
+
+    /// Add default generators if none have been added
+    pub fn with_default_generators(mut self) -> Self {
+        if self.generators.is_empty() {
+            // Title generator
+            self.generators.add(TitleGenerator);
+
+            // Meta tags generator
+            self.generators.add(MetaTagGenerator {
+                default_description: "A website created with yew-ssg.".to_string(),
+                default_keywords: vec!["yew".to_string(), "rust".to_string(), "ssg".to_string()],
+            });
+
+            // Open Graph generator
+            self.generators.add(OpenGraphGenerator {
+                site_name: "Yew SSG Site".to_string(),
+                default_image: "/images/default-cover.jpg".to_string(),
+            });
+
+            // Twitter Card generator
+            self.generators.add(TwitterCardGenerator {
+                twitter_site: None,
+                default_card_type: "summary".to_string(),
+            });
+
+            // Robots meta generator
+            self.generators.add(RobotsMetaGenerator {
+                default_robots: "index, follow".to_string(),
+            });
+        }
+        self
+    }
+
+    /// Add default processors if none have been added
+    pub fn with_default_processors(mut self) -> Self {
+        if self.processors.is_empty() {
+            // Placeholder processor needs generators from the config
+            let placeholder_processor =
+                PlaceholderProcessor::new("data-ssg", self.generators.clone());
+            self.processors.add(placeholder_processor);
+
+            // Template variable processor for {{var}} syntax
+            let template_processor = TemplateVariableProcessor::new();
+            self.processors.add(template_processor);
+
+            // HTML element processor for content manipulation
+            let html_processor = HtmlElementProcessor::new("data-ssg");
+            self.processors.add(html_processor);
+
+            // Attribute processor for attribute-based content
+            let attribute_processor = AttributeProcessor::new("data-ssg").with_default_handlers();
+            self.processors.add(attribute_processor);
+        }
+        self
+    }
 }
 
 impl Default for SsgConfig {
@@ -42,19 +103,33 @@ impl Default for SsgConfig {
             generators: GeneratorCollection::new(),
             processors: ProcessorCollection::new(),
         }
+        // Don't add defaults here to allow more control
     }
 }
 
 pub struct SsgConfigBuilder {
     pub config: SsgConfig,
+    pub use_default_generators: bool,
+    pub use_default_processors: bool,
 }
 
-// Ensure the method is INSIDE this block
 impl SsgConfigBuilder {
     pub fn new() -> Self {
         Self {
             config: SsgConfig::default(),
+            use_default_generators: true,
+            use_default_processors: true,
         }
+    }
+
+    pub fn without_default_generators(mut self) -> Self {
+        self.use_default_generators = false;
+        self
+    }
+
+    pub fn without_default_processors(mut self) -> Self {
+        self.use_default_processors = false;
+        self
     }
 
     pub fn output_dir<P: Into<PathBuf>>(mut self, path: P) -> Self {
@@ -64,16 +139,11 @@ impl SsgConfigBuilder {
 
     pub fn template<P: Into<PathBuf>>(mut self, path: P) -> Self {
         self.config.template_path = Some(path.into());
-        // Clear default_template if a path is provided? Optional decision.
-        // self.config.default_template = String::new();
         self
     }
 
-    // Add a method to set the default template string directly
     pub fn default_template_string(mut self, template_content: String) -> Self {
         self.config.default_template = template_content;
-        // Clear template_path if string content is provided? Optional decision.
-        // self.config.template_path = None;
         self
     }
 
@@ -99,7 +169,23 @@ impl SsgConfigBuilder {
         self
     }
 
+    /// Creates a placeholder processor using the currently configured generators
+    pub fn create_placeholder_processor(&self, prefix: &str) -> PlaceholderProcessor {
+        PlaceholderProcessor::new(prefix, self.config.generators.clone())
+    }
+
     pub fn build(self) -> SsgConfig {
-        self.config
+        let mut config = self.config;
+
+        // Apply defaults if requested
+        if self.use_default_generators {
+            config = config.with_default_generators();
+        }
+
+        if self.use_default_processors {
+            config = config.with_default_processors();
+        }
+
+        config
     }
 }

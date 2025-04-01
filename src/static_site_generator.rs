@@ -88,24 +88,7 @@ impl StaticSiteGenerator {
             info!("Using built-in default HTML template");
         }
 
-        let mut config = config;
-        if config.processors.is_empty() {
-            info!("Adding default processors");
-
-            // Add placeholder processor for elements with data-ssg-placeholder attributes
-            // This needs access to the generators
-            let placeholder_processor =
-                crate::processors::PlaceholderProcessor::new("data-ssg", config.generators.clone());
-            config.processors.add(placeholder_processor);
-
-            // Add HTML element processor for data-ssg attributes
-            let html_processor = HtmlElementProcessor::new("data-ssg");
-            config.processors.add(html_processor);
-
-            // Add template variable processor for {{var}} syntax
-            let variable_processor = TemplateVariableProcessor::new();
-            config.processors.add(variable_processor);
-        }
+        // We no longer need to manually add processors here since they're added in the config by default
 
         Ok(Self {
             config,
