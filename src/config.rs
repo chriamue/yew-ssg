@@ -5,9 +5,7 @@ use crate::generators::{
 };
 use crate::processor::Processor;
 use crate::processor_collection::ProcessorCollection;
-use crate::processors::{
-    AttributeProcessor, HtmlElementProcessor, PlaceholderProcessor, TemplateVariableProcessor,
-};
+use crate::processors::{AttributeProcessor, PlaceholderProcessor, TemplateVariableProcessor};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -79,10 +77,6 @@ impl SsgConfig {
             // Template variable processor for {{var}} syntax
             let template_processor = TemplateVariableProcessor::new();
             self.processors.add(template_processor);
-
-            // HTML element processor for content manipulation
-            let html_processor = HtmlElementProcessor::new("data-ssg");
-            self.processors.add(html_processor);
 
             // Attribute processor for attribute-based content
             let attribute_processor = AttributeProcessor::new("data-ssg").with_default_handlers();

@@ -1,5 +1,4 @@
 use crate::config::SsgConfig;
-use crate::processors::{HtmlElementProcessor, TemplateVariableProcessor};
 use log::{info, warn};
 use minijinja::Environment;
 use std::collections::HashMap;

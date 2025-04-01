@@ -30,7 +30,7 @@ pub mod prelude {
 
     // Processor implementations
     pub use crate::processors::{
-        AttributeProcessor, HtmlElementProcessor, TemplateVariableProcessor,
+        AttributeProcessor, PlaceholderProcessor, TemplateVariableProcessor,
     };
 
     // Static site generator
