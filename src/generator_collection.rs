@@ -1,4 +1,5 @@
 use crate::generator::Generator;
+use crate::processors::GeneratorOutputSupport;
 use std::collections::HashMap;
 use std::error::Error;
 use std::slice::Iter;
@@ -28,11 +29,59 @@ impl GeneratorCollection {
         let mut results = HashMap::new();
 
         for generator in &self.generators {
-            let result = generator.generate(route, content, metadata)?;
-            results.insert(generator.name().to_string(), result);
+            // Generate content using the generator's name as the key
+            let name = generator.name();
+            let result = generator.generate(name, route, content, metadata)?;
+            results.insert(name.to_string(), result);
+
+            // Check for additional output keys
+            if let Some(support) = self.try_get_output_support(generator) {
+                for key in support.supported_outputs() {
+                    // Skip the main output we already processed
+                    if key == name {
+                        continue;
+                    }
+
+                    // Generate specific output for this key
+                    match generator.generate(key, route, content, metadata) {
+                        Ok(output) => {
+                            results.insert(key.to_string(), output);
+                        }
+                        Err(_) => {
+                            // Silently skip errors for additional outputs
+                            // We already have the main output
+                        }
+                    }
+                }
+            }
         }
 
         Ok(results)
+    }
+
+    /// Try to extract GeneratorOutputSupport from a generator
+    fn try_get_output_support<'a>(
+        &self,
+        generator: &'a Box<dyn Generator>,
+    ) -> Option<&'a dyn GeneratorOutputSupport> {
+        use crate::generators::{
+            MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator,
+            TwitterCardGenerator,
+        };
+
+        if let Some(g) = generator.as_any().downcast_ref::<MetaTagGenerator>() {
+            return Some(g);
+        } else if let Some(g) = generator.as_any().downcast_ref::<OpenGraphGenerator>() {
+            return Some(g);
+        } else if let Some(g) = generator.as_any().downcast_ref::<RobotsMetaGenerator>() {
+            return Some(g);
+        } else if let Some(g) = generator.as_any().downcast_ref::<TitleGenerator>() {
+            return Some(g);
+        } else if let Some(g) = generator.as_any().downcast_ref::<TwitterCardGenerator>() {
+            return Some(g);
+        }
+
+        None
     }
 
     /// Returns the number of generators in the collection
@@ -42,7 +91,7 @@ impl GeneratorCollection {
 
     /// Returns true if the collection is empty
     pub fn is_empty(&self) -> bool {
-        self.generators.is_empty()
+        self.generators.len() == 0
     }
 
     /// Returns an iterator over the generators

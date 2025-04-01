@@ -18,12 +18,27 @@ impl Generator for TitleGenerator {
 
     fn generate(
         &self,
+        key: &str,
         _route: &str,
         _content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {
-        let title = metadata.get("title").cloned().unwrap_or_default();
-        Ok(format!("<title>{}</title>", title))
+        match key {
+            // Main output: full title tag
+            "title" => {
+                let title = metadata.get("title").cloned().unwrap_or_default();
+                Ok(format!("<title>{}</title>", title))
+            }
+
+            // Just the title text without HTML tags
+            "title_text" => {
+                let title = metadata.get("title").cloned().unwrap_or_default();
+                Ok(title)
+            }
+
+            // Unsupported key
+            _ => Err(format!("TitleGenerator does not support key: {}", key).into()),
+        }
     }
 
     fn clone_box(&self) -> Box<dyn Generator> {
@@ -33,7 +48,7 @@ impl Generator for TitleGenerator {
 
 impl GeneratorOutputSupport for TitleGenerator {
     fn supported_outputs(&self) -> Vec<&'static str> {
-        vec!["title"]
+        vec!["title", "title_text"]
     }
 }
 
@@ -45,7 +60,7 @@ impl AttributeSupport for TitleGenerator {
 
 impl TemplateVariableSupport for TitleGenerator {
     fn template_variables(&self) -> Vec<&'static str> {
-        vec!["title"]
+        vec!["title", "title_text"]
     }
 }
 
@@ -61,7 +76,12 @@ mod tests {
 
         // Test with empty metadata (should return empty title)
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &HashMap::new())
+            .generate(
+                "title",
+                "/test-route",
+                "<div>Test content</div>",
+                &HashMap::new(),
+            )
             .unwrap();
 
         assert_eq!(result, "<title></title>");
@@ -71,10 +91,42 @@ mod tests {
         metadata.insert("title".to_string(), "My Page Title".to_string());
 
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &metadata)
+            .generate("title", "/test-route", "<div>Test content</div>", &metadata)
             .unwrap();
 
         assert_eq!(result, "<title>My Page Title</title>");
+    }
+
+    #[test]
+    fn test_title_text_only() {
+        let generator = TitleGenerator;
+
+        // Test with empty metadata
+        let result = generator
+            .generate(
+                "title_text",
+                "/test-route",
+                "<div>Test content</div>",
+                &HashMap::new(),
+            )
+            .unwrap();
+
+        assert_eq!(result, "");
+
+        // Test with title in metadata
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "My Page Title".to_string());
+
+        let result = generator
+            .generate(
+                "title_text",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+
+        assert_eq!(result, "My Page Title");
     }
 
     #[test]
@@ -89,7 +141,7 @@ mod tests {
         );
 
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &metadata)
+            .generate("title", "/test-route", "<div>Test content</div>", &metadata)
             .unwrap();
 
         assert_eq!(
@@ -110,9 +162,28 @@ mod tests {
         );
 
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &metadata)
+            .generate("title", "/test-route", "<div>Test content</div>", &metadata)
             .unwrap();
 
         assert!(result.contains("This is an extremely long title"));
+    }
+
+    #[test]
+    fn test_unsupported_key() {
+        let generator = TitleGenerator;
+
+        // Test with an unsupported key
+        let result = generator.generate(
+            "invalid_key",
+            "/test-route",
+            "<div>Test content</div>",
+            &HashMap::new(),
+        );
+
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("does not support key"));
     }
 }

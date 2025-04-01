@@ -3,7 +3,7 @@ use crate::generator_collection::GeneratorCollection;
 use crate::processor::Processor;
 use crate::processors::AttributeSupport;
 use log::{debug, info, trace, warn};
-use scraper::{ElementRef, Html, Node, Selector};
+use scraper::{ElementRef, Html, Selector};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
@@ -418,11 +418,18 @@ mod tests {
 
         fn generate(
             &self,
+            key: &str,
             _route: &str,
             _content: &str,
             _metadata: &HashMap<String, String>,
         ) -> Result<String, Box<dyn Error>> {
-            Ok(format!("<p>Generated {}</p>", self.name))
+            // We can use the key to provide different outputs
+            if key == self.name() {
+                Ok(format!("<p>Generated {}</p>", self.name))
+            } else {
+                // Handle other keys if needed
+                Ok(format!("<p>Generated {} for key '{}'</p>", self.name, key))
+            }
         }
 
         fn clone_box(&self) -> Box<dyn Generator> {

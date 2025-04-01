@@ -22,45 +22,92 @@ impl Generator for OpenGraphGenerator {
 
     fn generate(
         &self,
+        key: &str,
         _route: &str,
         _content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {
-        let mut tags = String::new();
+        match key {
+            // Main output: full OpenGraph tags
+            "open_graph" => {
+                let mut tags = String::new();
 
-        // Basic OG tags
-        tags.push_str("<meta property=\"og:type\" content=\"website\">\n");
+                // Basic OG tags
+                tags.push_str("<meta property=\"og:type\" content=\"website\">\n");
 
-        let title = metadata.get("title").cloned().unwrap_or_default();
-        tags.push_str(&format!(
-            "<meta property=\"og:title\" content=\"{}\">\n",
-            title
-        ));
+                let title = metadata.get("title").cloned().unwrap_or_default();
+                tags.push_str(&format!(
+                    "<meta property=\"og:title\" content=\"{}\">\n",
+                    title
+                ));
 
-        let description = metadata.get("description").cloned().unwrap_or_default();
-        tags.push_str(&format!(
-            "<meta property=\"og:description\" content=\"{}\">\n",
-            description
-        ));
+                let description = metadata.get("description").cloned().unwrap_or_default();
+                tags.push_str(&format!(
+                    "<meta property=\"og:description\" content=\"{}\">\n",
+                    description
+                ));
 
-        let url = metadata.get("url").cloned().unwrap_or_default();
-        tags.push_str(&format!("<meta property=\"og:url\" content=\"{}\">\n", url));
+                let url = metadata.get("url").cloned().unwrap_or_default();
+                tags.push_str(&format!("<meta property=\"og:url\" content=\"{}\">\n", url));
 
-        let image = metadata
-            .get("og:image")
-            .cloned()
-            .unwrap_or_else(|| self.default_image.clone());
-        tags.push_str(&format!(
-            "<meta property=\"og:image\" content=\"{}\">\n",
-            image
-        ));
+                let image = metadata
+                    .get("og:image")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_image.clone());
+                tags.push_str(&format!(
+                    "<meta property=\"og:image\" content=\"{}\">\n",
+                    image
+                ));
 
-        tags.push_str(&format!(
-            "<meta property=\"og:site_name\" content=\"{}\">\n",
-            self.site_name
-        ));
+                tags.push_str(&format!(
+                    "<meta property=\"og:site_name\" content=\"{}\">\n",
+                    self.site_name
+                ));
 
-        Ok(tags)
+                Ok(tags)
+            }
+
+            // Individual OpenGraph properties
+            "og:title" => {
+                let title = metadata.get("title").cloned().unwrap_or_default();
+                Ok(format!(
+                    "<meta property=\"og:title\" content=\"{}\">\n",
+                    title
+                ))
+            }
+
+            "og:description" => {
+                let description = metadata.get("description").cloned().unwrap_or_default();
+                Ok(format!(
+                    "<meta property=\"og:description\" content=\"{}\">\n",
+                    description
+                ))
+            }
+
+            "og:url" => {
+                let url = metadata.get("url").cloned().unwrap_or_default();
+                Ok(format!("<meta property=\"og:url\" content=\"{}\">\n", url))
+            }
+
+            "og:image" => {
+                let image = metadata
+                    .get("og:image")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_image.clone());
+                Ok(format!(
+                    "<meta property=\"og:image\" content=\"{}\">\n",
+                    image
+                ))
+            }
+
+            "og:site_name" => Ok(format!(
+                "<meta property=\"og:site_name\" content=\"{}\">\n",
+                self.site_name
+            )),
+
+            // Unsupported key
+            _ => Err(format!("OpenGraphGenerator does not support key: {}", key).into()),
+        }
     }
 
     fn clone_box(&self) -> Box<dyn Generator> {
@@ -114,7 +161,12 @@ mod tests {
 
         // Test with empty metadata
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &HashMap::new())
+            .generate(
+                "open_graph",
+                "/test-route",
+                "<div>Test content</div>",
+                &HashMap::new(),
+            )
             .unwrap();
 
         assert!(result.contains("<meta property=\"og:type\" content=\"website\">"));
@@ -133,7 +185,12 @@ mod tests {
         );
 
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &metadata)
+            .generate(
+                "open_graph",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
             .unwrap();
 
         assert!(result.contains("<meta property=\"og:title\" content=\"Custom Title\">"));

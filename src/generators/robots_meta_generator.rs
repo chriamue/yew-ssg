@@ -20,16 +20,35 @@ impl Generator for RobotsMetaGenerator {
 
     fn generate(
         &self,
+        key: &str,
         _route: &str,
         _content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {
-        let robots = metadata
-            .get("robots")
-            .cloned()
-            .unwrap_or_else(|| self.default_robots.clone());
+        match key {
+            // Main output: robots meta tag
+            "robots_meta" => {
+                let robots = metadata
+                    .get("robots")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_robots.clone());
 
-        Ok(format!("<meta name=\"robots\" content=\"{}\">\n", robots))
+                Ok(format!("<meta name=\"robots\" content=\"{}\">\n", robots))
+            }
+
+            // Individual robots content
+            "robots" => {
+                let robots = metadata
+                    .get("robots")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_robots.clone());
+
+                Ok(robots)
+            }
+
+            // Unsupported key
+            _ => Err(format!("RobotsMetaGenerator does not support key: {}", key).into()),
+        }
     }
 
     fn clone_box(&self) -> Box<dyn Generator> {
@@ -39,13 +58,13 @@ impl Generator for RobotsMetaGenerator {
 
 impl GeneratorOutputSupport for RobotsMetaGenerator {
     fn supported_outputs(&self) -> Vec<&'static str> {
-        vec!["robots_meta"]
+        vec!["robots_meta", "robots"]
     }
 }
 
 impl AttributeSupport for RobotsMetaGenerator {
     fn attributes(&self) -> Vec<&'static str> {
-        vec!["robots_meta"]
+        vec!["robots_meta", "robots"]
     }
 }
 
@@ -67,9 +86,14 @@ mod tests {
             default_robots: "index, follow".to_string(),
         };
 
-        // Test with default value
+        // Test with default value (using main key)
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &HashMap::new())
+            .generate(
+                "robots_meta",
+                "/test-route",
+                "<div>Test content</div>",
+                &HashMap::new(),
+            )
             .unwrap();
 
         assert!(result.contains("<meta name=\"robots\" content=\"index, follow\">"));
@@ -79,9 +103,69 @@ mod tests {
         metadata.insert("robots".to_string(), "noindex, nofollow".to_string());
 
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &metadata)
+            .generate(
+                "robots_meta",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
             .unwrap();
 
         assert!(result.contains("<meta name=\"robots\" content=\"noindex, nofollow\">"));
+    }
+
+    #[test]
+    fn test_robots_value_only() {
+        let generator = RobotsMetaGenerator {
+            default_robots: "index, follow".to_string(),
+        };
+
+        // Test the robots value directly
+        let result = generator
+            .generate(
+                "robots",
+                "/test-route",
+                "<div>Test content</div>",
+                &HashMap::new(),
+            )
+            .unwrap();
+
+        assert_eq!(result, "index, follow");
+
+        // Test with custom value
+        let mut metadata = HashMap::new();
+        metadata.insert("robots".to_string(), "noindex, nofollow".to_string());
+
+        let result = generator
+            .generate(
+                "robots",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+
+        assert_eq!(result, "noindex, nofollow");
+    }
+
+    #[test]
+    fn test_unsupported_key() {
+        let generator = RobotsMetaGenerator {
+            default_robots: "index, follow".to_string(),
+        };
+
+        // Test with an unsupported key
+        let result = generator.generate(
+            "unsupported_key",
+            "/test-route",
+            "<div>Test content</div>",
+            &HashMap::new(),
+        );
+
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("does not support key"));
     }
 }

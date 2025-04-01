@@ -21,41 +21,81 @@ impl Generator for MetaTagGenerator {
 
     fn generate(
         &self,
+        key: &str,
         _route: &str,
         _content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {
-        let mut tags = String::new();
+        match key {
+            // Main output: full meta tags block
+            "meta_tags" => {
+                let mut tags = String::new();
 
-        // Description meta tag
-        let description = metadata
-            .get("description")
-            .cloned()
-            .unwrap_or_else(|| self.default_description.clone());
-        tags.push_str(&format!(
-            "<meta name=\"description\" content=\"{}\">\n",
-            description
-        ));
+                // Description meta tag
+                let description = metadata
+                    .get("description")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_description.clone());
+                tags.push_str(&format!(
+                    "<meta name=\"description\" content=\"{}\">\n",
+                    description
+                ));
 
-        // Keywords meta tag
-        let keywords = metadata
-            .get("keywords")
-            .cloned()
-            .unwrap_or_else(|| self.default_keywords.join(", "));
-        tags.push_str(&format!(
-            "<meta name=\"keywords\" content=\"{}\">\n",
-            keywords
-        ));
+                // Keywords meta tag
+                let keywords = metadata
+                    .get("keywords")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_keywords.join(", "));
+                tags.push_str(&format!(
+                    "<meta name=\"keywords\" content=\"{}\">\n",
+                    keywords
+                ));
 
-        // Canonical URL
-        if let Some(canonical) = metadata.get("canonical") {
-            tags.push_str(&format!(
-                "<link rel=\"canonical\" href=\"{}\">\n",
-                canonical
-            ));
+                // Canonical URL
+                if let Some(canonical) = metadata.get("canonical") {
+                    tags.push_str(&format!(
+                        "<link rel=\"canonical\" href=\"{}\">\n",
+                        canonical
+                    ));
+                }
+
+                Ok(tags)
+            }
+
+            // Individual meta components
+            "description" => {
+                let description = metadata
+                    .get("description")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_description.clone());
+                Ok(format!(
+                    "<meta name=\"description\" content=\"{}\">\n",
+                    description
+                ))
+            }
+
+            "keywords" => {
+                let keywords = metadata
+                    .get("keywords")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_keywords.join(", "));
+                Ok(format!(
+                    "<meta name=\"keywords\" content=\"{}\">\n",
+                    keywords
+                ))
+            }
+
+            "canonical" => {
+                if let Some(canonical) = metadata.get("canonical") {
+                    Ok(format!("<link rel=\"canonical\" href=\"{}\">\n", canonical))
+                } else {
+                    Ok("".to_string()) // No canonical URL available
+                }
+            }
+
+            // Unsupported key
+            _ => Err(format!("MetaTagGenerator does not support key: {}", key).into()),
         }
-
-        Ok(tags)
     }
 
     fn clone_box(&self) -> Box<dyn Generator> {
@@ -96,7 +136,12 @@ mod tests {
 
         // Test with empty metadata
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &HashMap::new())
+            .generate(
+                "meta_tags",
+                "/test-route",
+                "<div>Test content</div>",
+                &HashMap::new(),
+            )
             .unwrap();
 
         assert!(result.contains("<meta name=\"description\" content=\"Default description\">"));
@@ -112,7 +157,12 @@ mod tests {
         );
 
         let result = generator
-            .generate("/test-route", "<div>Test content</div>", &metadata)
+            .generate(
+                "meta_tags",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
             .unwrap();
 
         assert!(result.contains("<meta name=\"description\" content=\"Custom description\">"));
