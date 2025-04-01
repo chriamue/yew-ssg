@@ -92,7 +92,13 @@ impl StaticSiteGenerator {
         if config.processors.is_empty() {
             info!("Adding default processors");
 
-            // Add HTML element processor for placeholder elements
+            // Add placeholder processor for elements with data-ssg-placeholder attributes
+            // This needs access to the generators
+            let placeholder_processor =
+                crate::processors::PlaceholderProcessor::new("data-ssg", config.generators.clone());
+            config.processors.add(placeholder_processor);
+
+            // Add HTML element processor for data-ssg attributes
             let html_processor = HtmlElementProcessor::new("data-ssg");
             config.processors.add(html_processor);
 
@@ -548,5 +554,63 @@ mod tests {
         assert!(result.contains("<title>Replaced Title</title>"));
         assert!(result.contains("content=\"Replaced description\""));
         assert!(!result.contains("data-ssg="));
+    }
+
+    #[test]
+    fn test_placeholder_processor_integration() {
+        use crate::generators::TitleGenerator;
+        use crate::processor::Processor;
+        use crate::processors::PlaceholderProcessor;
+
+        // Create a simple HTML with a placeholder
+        let html = r#"<html>
+        <head>
+            <div data-ssg-placeholder="title"></div>
+        </head>
+        <body>
+            <div id="content">Test content</div>
+        </body>
+        </html>"#;
+
+        // Set up a generator collection with a title generator
+        let mut generators = crate::generator_collection::GeneratorCollection::new();
+        generators.add(TitleGenerator);
+
+        // Create metadata with a title
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "My Test Page".to_string());
+
+        // Process with placeholder processor
+        let placeholder_processor = PlaceholderProcessor::new("data-ssg", generators);
+        let processed = placeholder_processor
+            .process(html, &metadata, &HashMap::new(), "")
+            .unwrap();
+
+        // Verify the placeholder was replaced with title
+        assert!(processed.contains("<title>My Test Page</title>"));
+        assert!(!processed.contains("data-ssg-placeholder"));
+
+        // Now let's create a complete SSG and verify it works end-to-end
+        let config = SsgConfigBuilder::new()
+            .output_dir("test_dist")
+            .default_template_string(html.to_string())
+            .build();
+
+        let mut config = config;
+
+        // Add the title generator
+        config.generators.add(TitleGenerator);
+
+        // Create the SSG (which will add default processors)
+        let ssg = StaticSiteGenerator::new(config).unwrap();
+
+        // Process through the SSG's wrap_html
+        let result = ssg
+            .wrap_html("", "/test-page", &metadata, &HashMap::new())
+            .unwrap();
+
+        // Verify placeholder was replaced
+        assert!(result.contains("<title>My Test Page</title>"));
+        assert!(!result.contains("data-ssg-placeholder"));
     }
 }

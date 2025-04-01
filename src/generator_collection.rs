@@ -40,6 +40,17 @@ impl GeneratorCollection {
             return Some(g);
         }
 
+        // Testing support: mock generator
+        #[cfg(test)]
+        {
+            if let Some(g) = generator
+                .as_any()
+                .downcast_ref::<crate::generator::tests::MockGenerator>()
+            {
+                return Some(g);
+            }
+        }
+
         None
     }
 

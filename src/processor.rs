@@ -92,3 +92,88 @@ impl Clone for Box<dyn Processor> {
         self.as_ref().clone_box()
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use std::fmt;
+
+    /// A mock processor for testing
+    #[derive(Clone)]
+    pub struct MockProcessor {
+        name: &'static str,
+        transform_fn: fn(&str) -> String,
+    }
+
+    impl fmt::Debug for MockProcessor {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.debug_struct("MockProcessor")
+                .field("name", &self.name)
+                .finish()
+        }
+    }
+
+    impl MockProcessor {
+        pub fn new(name: &'static str, transform_fn: fn(&str) -> String) -> Self {
+            Self { name, transform_fn }
+        }
+    }
+
+    impl Processor for MockProcessor {
+        fn name(&self) -> &'static str {
+            self.name
+        }
+
+        fn process(
+            &self,
+            html: &str,
+            _metadata: &HashMap<String, String>,
+            _generator_outputs: &HashMap<String, String>,
+            _content: &str,
+        ) -> Result<String, Box<dyn Error>> {
+            Ok((self.transform_fn)(html))
+        }
+
+        fn clone_box(&self) -> Box<dyn Processor> {
+            Box::new(self.clone())
+        }
+    }
+
+    /// Test function to verify Processor trait compliance
+    pub fn test_processor_compliance<P: Processor + Clone>(processor: P) {
+        // Test name returns a value
+        let name = processor.name();
+        assert!(!name.is_empty(), "Processor name should not be empty");
+
+        // Test clone_box returns a valid clone
+        let cloned: Box<dyn Processor> = processor.clone_box();
+        assert_eq!(
+            cloned.name(),
+            name,
+            "Cloned processor should have same name"
+        );
+
+        // Test process with minimal input
+        let result = processor.process("<div>test</div>", &HashMap::new(), &HashMap::new(), "");
+        assert!(result.is_ok(), "Basic process call should not fail");
+    }
+
+    #[test]
+    fn test_mock_processor() {
+        let mock = MockProcessor::new("test_processor", |html| {
+            format!("<processed>{}</processed>", html)
+        });
+
+        // Test name
+        assert_eq!(mock.name(), "test_processor");
+
+        // Test processing
+        let result = mock
+            .process("<div>test</div>", &HashMap::new(), &HashMap::new(), "")
+            .unwrap();
+        assert_eq!(result, "<processed><div>test</div></processed>");
+
+        // Run compliance test
+        test_processor_compliance(mock);
+    }
+}
