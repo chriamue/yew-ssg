@@ -1,5 +1,5 @@
 use crate::generator::Generator;
-use crate::processors::{AttributeSupport, GeneratorOutputSupport, TemplateVariableSupport};
+use crate::processors::GeneratorOutputSupport;
 use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
@@ -48,18 +48,6 @@ impl Generator for TitleGenerator {
 
 impl GeneratorOutputSupport for TitleGenerator {
     fn supported_outputs(&self) -> Vec<&'static str> {
-        vec!["title", "title_text"]
-    }
-}
-
-impl AttributeSupport for TitleGenerator {
-    fn attributes(&self) -> Vec<&'static str> {
-        vec!["title"]
-    }
-}
-
-impl TemplateVariableSupport for TitleGenerator {
-    fn template_variables(&self) -> Vec<&'static str> {
         vec!["title", "title_text"]
     }
 }

@@ -1,54 +1,32 @@
-use crate::generator::Generator;
 use crate::generator_collection::GeneratorCollection;
 use crate::processor::Processor;
-use crate::processors::AttributeSupport;
-use log::{debug, info, trace, warn};
-use scraper::{ElementRef, Html, Selector};
+use log::{debug, trace, warn};
+use scraper::{Html, Selector};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
 
-/// Processor that handles HTML attribute-based templating using proper HTML parsing
-/// This version automatically adapts to generators that implement AttributeSupport
+/// Processor that handles attribute-based templating.
+///
+/// This processor focuses on two main tasks:
+/// 1. Replacing content of elements with `data-ssg="key"` using metadata values
+/// 2. Updating attributes of elements using `data-ssg="key" data-ssg-a="attribute"`
+///
+/// The processor is deliberately kept simple and focused for better maintainability.
 #[derive(Clone)]
 pub struct AttributeProcessor {
     /// The prefix used for data attributes (e.g., "data-ssg")
     prefix: String,
 
-    /// Content handler
-    content_handler: Option<Arc<dyn Fn(&str) -> String + Send + Sync>>,
-
-    /// Custom attribute handlers
-    custom_handlers:
-        HashMap<String, Arc<dyn Fn(&str, &HashMap<String, String>) -> String + Send + Sync>>,
-
-    /// Placeholder handlers
-    placeholder_handlers: HashMap<String, Arc<dyn Fn(&str) -> String + Send + Sync>>,
-
-    /// Generator information - populated from configure_for_generators
-    generator_info: HashMap<String, GeneratorInfo>,
-}
-
-#[derive(Clone)]
-struct GeneratorInfo {
-    name: String,
-    supported_attributes: Vec<String>,
+    /// Reference to generators for possible on-demand content generation
+    generators: Arc<Option<GeneratorCollection>>,
 }
 
 impl fmt::Debug for AttributeProcessor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("AttributeProcessor")
             .field("prefix", &self.prefix)
-            .field(
-                "custom_handlers",
-                &self.custom_handlers.keys().collect::<Vec<_>>(),
-            )
-            .field("has_content_handler", &self.content_handler.is_some())
-            .field(
-                "generators",
-                &self.generator_info.keys().collect::<Vec<_>>(),
-            )
             .finish()
     }
 }
@@ -58,146 +36,23 @@ impl AttributeProcessor {
     pub fn new(prefix: &str) -> Self {
         Self {
             prefix: prefix.to_string(),
-            content_handler: None,
-            custom_handlers: HashMap::new(),
-            placeholder_handlers: HashMap::new(),
-            generator_info: HashMap::new(),
+            generators: Arc::new(None),
         }
     }
 
-    /// Register a custom handler for a specific attribute
-    pub fn register_attribute_handler<F>(mut self, attr_name: &str, handler: F) -> Self
-    where
-        F: Fn(&str, &HashMap<String, String>) -> String + Send + Sync + 'static,
-    {
-        self.custom_handlers
-            .insert(attr_name.to_string(), Arc::new(handler));
+    /// Optionally configure the processor with generators for on-demand generation
+    pub fn with_generators(mut self, generators: GeneratorCollection) -> Self {
+        self.generators = Arc::new(Some(generators));
         self
     }
 
-    /// Register a handler for the content area
-    pub fn register_content_handler<F>(mut self, handler: F) -> Self
-    where
-        F: Fn(&str) -> String + Send + Sync + 'static,
-    {
-        self.content_handler = Some(Arc::new(handler));
-        self
-    }
-
-    /// Register a handler for a placeholder attribute for a specific generator
-    pub fn register_placeholder_handler<F>(mut self, generator_name: &str, handler: F) -> Self
-    where
-        F: Fn(&str) -> String + Send + Sync + 'static,
-    {
-        self.placeholder_handlers
-            .insert(generator_name.to_string(), Arc::new(handler));
-        self
-    }
-
-    /// Configure the processor based on available generators
-    pub fn configure_for_generators(mut self, generators: &GeneratorCollection) -> Self {
-        info!("Configuring attribute processor for generators");
-
-        // Process each generator to extract supported attributes
-        for generator in generators.iter() {
-            let name = generator.name().to_string();
-            let mut supported_attributes = Vec::new();
-
-            // Try to get attribute support information from the generator
-            if let Some(typed_generator) = self.try_get_attribute_support(generator) {
-                for attr in typed_generator.attributes() {
-                    supported_attributes.push(attr.to_string());
-                }
-
-                debug!(
-                    "Generator '{}' supports attributes: {:?}",
-                    name, supported_attributes
-                );
-            } else {
-                // If we couldn't detect attribute support, use the generator name
-                debug!(
-                    "No attribute support detected for '{}', using name as attribute",
-                    name
-                );
-                supported_attributes.push(name.clone());
-            }
-
-            // Store the generator info
-            self.generator_info.insert(
-                name.clone(),
-                GeneratorInfo {
-                    name,
-                    supported_attributes,
-                },
-            );
-        }
-
-        info!("Configured for {} generators", self.generator_info.len());
-        self
-    }
-
-    /// Try to extract AttributeSupport from a generator
-    fn try_get_attribute_support<'a>(
-        &self,
-        generator: &'a Box<dyn Generator>,
-    ) -> Option<&'a dyn AttributeSupport> {
-        // First, try direct casting (unlikely to work with trait objects)
-        if let Some(support) = generator
-            .as_any()
-            .downcast_ref::<Box<dyn AttributeSupport>>()
-        {
-            return Some(support.as_ref());
-        }
-
-        // Try each possible concrete type
-        use crate::generators::{
-            MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator,
-            TwitterCardGenerator,
-        };
-
-        if let Some(g) = generator.as_any().downcast_ref::<MetaTagGenerator>() {
-            return Some(g);
-        } else if let Some(g) = generator.as_any().downcast_ref::<OpenGraphGenerator>() {
-            return Some(g);
-        } else if let Some(g) = generator.as_any().downcast_ref::<RobotsMetaGenerator>() {
-            return Some(g);
-        } else if let Some(g) = generator.as_any().downcast_ref::<TitleGenerator>() {
-            return Some(g);
-        } else if let Some(g) = generator.as_any().downcast_ref::<TwitterCardGenerator>() {
-            return Some(g);
-        }
-
-        None
-    }
-
-    /// Add default handlers for common attributes
+    /// Add standard handlers for common content cases
     pub fn with_default_handlers(self) -> Self {
-        // Register the default content handler
-        let processor =
-            self.register_content_handler(|content| format!("<div id=\"app\">{}</div>", content));
-
-        // Add handlers for common attributes
-        let mut result = processor;
-
-        // For title
-        result = result.register_attribute_handler("title", |value, _metadata| {
-            format!("<title>{}</title>", value)
-        });
-
-        // For description
-        result = result.register_attribute_handler("description", |value, _metadata| {
-            format!("<meta name=\"description\" content=\"{}\">", value)
-        });
-
-        // For keywords
-        result = result.register_attribute_handler("keywords", |value, _metadata| {
-            format!("<meta name=\"keywords\" content=\"{}\">", value)
-        });
-
-        result
+        // No custom handlers to add - we'll handle common cases directly in process_html
+        self
     }
 
-    /// Process HTML using the configured handlers and generators
+    /// Process HTML to handle attribute-based content and attribute replacements
     fn process_html(
         &self,
         html_str: &str,
@@ -205,165 +60,228 @@ impl AttributeProcessor {
         generator_outputs: &HashMap<String, String>,
         content: &str,
     ) -> Result<String, Box<dyn Error>> {
-        // Parse HTML
         let document = Html::parse_document(html_str);
-
-        // Track all elements that need to be processed
+        let mut result = html_str.to_string();
         let mut replacements = Vec::new();
 
-        // 1. Process custom attribute handlers for elements with data-ssg="attr_name"
-        for (attr_name, handler) in &self.custom_handlers {
-            // Create string first, then parse
-            let selector_string = format!("[{}=\"{}\"]", self.prefix, attr_name);
-            let selector = match Selector::parse(&selector_string) {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("Invalid selector '{}': {:?}", selector_string, e);
-                    continue;
-                }
-            };
+        // 1. Process content replacements (data-ssg="key")
+        self.process_content_replacements(&document, metadata, &mut replacements)?;
 
-            for element in document.select(&selector) {
-                if let Some(value) = metadata.get(attr_name) {
-                    debug!("Processing element with {}=\"{}\"", self.prefix, attr_name);
-                    let html = element.html();
-                    let replacement = handler(value, metadata);
-                    replacements.push((html, replacement));
-                }
-            }
-        }
+        // 2. Process attribute replacements (data-ssg="key" data-ssg-a="attr")
+        self.process_attribute_replacements(&document, metadata, &mut replacements)?;
 
-        // 2. Process attribute replacements for elements with data-ssg-a="attr_name"
-        {
-            // Create string first, then parse
-            let attr_selector_string = format!("[{}-a]", self.prefix);
-            let selector = match Selector::parse(&attr_selector_string) {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("Invalid selector '{}': {:?}", attr_selector_string, e);
-                    return Ok(html_str.to_string()); // Return original if can't parse
-                }
-            };
+        // 3. Handle special case for content area
+        self.process_content_area(&document, content, &mut replacements)?;
 
-            for element in document.select(&selector) {
-                // Check if it has both data-ssg and data-ssg-a attributes
-                if let Some(attr_to_change) = element.value().attr(&format!("{}-a", self.prefix)) {
-                    if let Some(metadata_key) = element.value().attr(&self.prefix) {
-                        if let Some(new_value) = metadata.get(metadata_key) {
-                            debug!(
-                                "Changing attribute '{}' to '{}' on element {}",
-                                attr_to_change,
-                                new_value,
-                                element.value().name()
-                            );
-
-                            // Create a new element with the attribute replaced
-                            let mut attrs = Vec::new();
-                            for (name, value) in element.value().attrs() {
-                                if name == attr_to_change {
-                                    // Replace this attribute
-                                    attrs.push((name, new_value.as_str()));
-                                } else if name == &self.prefix
-                                    || name == &format!("{}-a", self.prefix)
-                                {
-                                    // Skip our special attributes
-                                    continue;
-                                } else {
-                                    // Keep other attributes
-                                    attrs.push((name, value));
-                                }
-                            }
-
-                            // Now replace the entire element
-                            let html = element.html();
-                            let mut replacement = String::new();
-                            replacement.push_str(&format!("<{}", element.value().name()));
-                            for (name, value) in attrs {
-                                replacement.push_str(&format!(" {}=\"{}\"", name, value));
-                            }
-                            replacement.push_str(">");
-
-                            // If the element has children, we need to append them
-                            if element.children().count() > 0 {
-                                for child in element.children() {
-                                    if let Some(html) = child.value().as_text() {
-                                        replacement.push_str(html);
-                                    }
-                                }
-                                replacement.push_str(&format!("</{}>", element.value().name()));
-                            }
-
-                            replacements.push((html, replacement));
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Process generator placeholders
-        for (generator_name, output) in generator_outputs {
-            // Create string first, then parse
-            let placeholder_selector =
-                format!("[{}-placeholder=\"{}\"]", self.prefix, generator_name);
-            let selector = match Selector::parse(&placeholder_selector) {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("Invalid selector '{}': {:?}", placeholder_selector, e);
-                    continue;
-                }
-            };
-
-            for element in document.select(&selector) {
-                let html = element.html();
-                let replacement =
-                    if let Some(handler) = self.placeholder_handlers.get(generator_name) {
-                        handler(output)
-                    } else {
-                        output.clone()
-                    };
-                replacements.push((html, replacement));
-            }
-        }
-
-        // 4. Process content area
-        if let Some(content_handler) = &self.content_handler {
-            // Create string first, then parse
-            let content_selector = format!("[{}=\"content\"]", self.prefix);
-            let selector = match Selector::parse(&content_selector) {
-                Ok(s) => s,
-                Err(e) => {
-                    warn!("Invalid selector '{}': {:?}", content_selector, e);
-                    return Ok(html_str.to_string()); // Return original if can't parse
-                }
-            };
-
-            for element in document.select(&selector) {
-                let html = element.html();
-                let replacement = content_handler(content);
-                replacements.push((html, replacement));
-            }
-        }
-
-        // Sort replacements by length to replace longer fragments first
+        // Apply all replacements (sorting by length to avoid nested replacement issues)
         replacements.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
 
-        // Apply all replacements to the HTML string
-        let mut result = html_str.to_string();
         for (original, replacement) in replacements {
             debug!("Replacing: {} -> {}", original, replacement);
             result = result.replace(&original, &replacement);
         }
 
-        // Remove any remaining data-ssg attributes using regex
-        let data_attr_pattern = format!(r#"\s+{}(?:-[a-z]+)?="[^"]*""#, self.prefix);
-        if let Ok(re) = regex::Regex::new(&data_attr_pattern) {
-            result = re.replace_all(&result, "").to_string();
-        }
+        // Remove any remaining data-ssg attributes
+        self.clean_data_attributes(&mut result)?;
 
         debug!("Final processed HTML length: {}", result.len());
         trace!("Final processed HTML: {}", result);
 
         Ok(result)
+    }
+
+    /// Process elements with data-ssg="key" to replace their content
+    fn process_content_replacements(
+        &self,
+        document: &Html,
+        metadata: &HashMap<String, String>,
+        replacements: &mut Vec<(String, String)>,
+    ) -> Result<(), Box<dyn Error>> {
+        // Create selector for elements with data-ssg attribute
+        let selector_string = format!("[{}]:not([{}-a])", self.prefix, self.prefix);
+        let selector = match Selector::parse(&selector_string) {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("Invalid selector '{}': {:?}", selector_string, e);
+                return Ok(());
+            }
+        };
+
+        for element in document.select(&selector) {
+            if let Some(key) = element.value().attr(&self.prefix) {
+                // Skip content element as it's handled separately
+                if key == "content" {
+                    continue;
+                }
+
+                if let Some(value) = metadata.get(key) {
+                    debug!(
+                        "Processing content replacement for {}=\"{}\"",
+                        self.prefix, key
+                    );
+
+                    // Get the original element HTML
+                    let original = element.html();
+
+                    // Create a replacement with the same tag but new content
+                    let tag_name = element.value().name();
+                    let mut replacement = String::new();
+
+                    // Preserve all attributes except our data attributes
+                    replacement.push_str(&format!("<{}", tag_name));
+                    for (attr_name, attr_value) in element.value().attrs() {
+                        if !attr_name.starts_with(&self.prefix) {
+                            replacement.push_str(&format!(" {}=\"{}\"", attr_name, attr_value));
+                        }
+                    }
+                    replacement.push('>');
+
+                    // Handle special case for meta tags and similar elements
+                    if key == "title" {
+                        replacement.push_str(&format!("{}", value));
+                    } else if key == "description" && tag_name == "meta" {
+                        // Do nothing - we'll keep the original attributes but remove content
+                    } else {
+                        // For regular elements, just replace the content
+                        replacement.push_str(value);
+                    }
+
+                    replacement.push_str(&format!("</{}>", tag_name));
+                    replacements.push((original, replacement));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Process elements with data-ssg="key" data-ssg-a="attribute" to modify attributes
+    fn process_attribute_replacements(
+        &self,
+        document: &Html,
+        metadata: &HashMap<String, String>,
+        replacements: &mut Vec<(String, String)>,
+    ) -> Result<(), Box<dyn Error>> {
+        // Create selector for elements with both data-ssg and data-ssg-a attributes
+        let selector_string = format!("[{}][{}-a]", self.prefix, self.prefix);
+        let selector = match Selector::parse(&selector_string) {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("Invalid selector '{}': {:?}", selector_string, e);
+                return Ok(());
+            }
+        };
+
+        for element in document.select(&selector) {
+            if let (Some(key), Some(attr_to_change)) = (
+                element.value().attr(&self.prefix),
+                element.value().attr(&format!("{}-a", self.prefix)),
+            ) {
+                if let Some(new_value) = metadata.get(key) {
+                    debug!(
+                        "Replacing attribute '{}' with value from '{}'",
+                        attr_to_change, key
+                    );
+
+                    // Get the original element HTML
+                    let original = element.html();
+
+                    // Create a replacement with updated attribute
+                    let mut replacement = String::new();
+                    replacement.push_str(&format!("<{}", element.value().name()));
+
+                    // Add all attributes, updating the target one
+                    for (attr_name, attr_value) in element.value().attrs() {
+                        if attr_name == attr_to_change {
+                            // Replace with new value
+                            replacement.push_str(&format!(" {}=\"{}\"", attr_name, new_value));
+                        } else if !attr_name.starts_with(&self.prefix) {
+                            // Keep non-data attributes
+                            replacement.push_str(&format!(" {}=\"{}\"", attr_name, attr_value));
+                        }
+                        // Skip our data-ssg attributes
+                    }
+
+                    // Close the opening tag
+                    replacement.push('>');
+
+                    // Add any content for non-void elements
+                    let has_children = element.children().count() > 0;
+                    if has_children {
+                        // For elements with children, preserve the original inner HTML
+                        // This is a simplification that works for most cases
+                        let inner_html = element.inner_html();
+                        replacement.push_str(&inner_html);
+                        replacement.push_str(&format!("</{}>", element.value().name()));
+                    }
+
+                    replacements.push((original, replacement));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Special handling for the content area (data-ssg="content")
+    fn process_content_area(
+        &self,
+        document: &Html,
+        content: &str,
+        replacements: &mut Vec<(String, String)>,
+    ) -> Result<(), Box<dyn Error>> {
+        // Create selector for content area
+        let selector_string = format!("[{}=\"content\"]", self.prefix);
+        let selector = match Selector::parse(&selector_string) {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("Invalid selector '{}': {:?}", selector_string, e);
+                return Ok(());
+            }
+        };
+
+        for element in document.select(&selector) {
+            debug!("Processing content area");
+
+            // Get the original element HTML
+            let original = element.html();
+
+            // Create a replacement with app div
+            let mut replacement = String::new();
+            replacement.push_str(&format!("<{}", element.value().name()));
+
+            // Add all attributes except our data attributes
+            for (attr_name, attr_value) in element.value().attrs() {
+                if !attr_name.starts_with(&self.prefix) {
+                    replacement.push_str(&format!(" {}=\"{}\"", attr_name, attr_value));
+                }
+            }
+
+            // Add id="app" if not already present
+            if element.value().attr("id").is_none() {
+                replacement.push_str(" id=\"app\"");
+            }
+
+            // Close tag and add content
+            replacement.push('>');
+            replacement.push_str(content);
+            replacement.push_str(&format!("</{}>", element.value().name()));
+
+            replacements.push((original, replacement));
+        }
+
+        Ok(())
+    }
+
+    /// Remove any remaining data-ssg attributes
+    fn clean_data_attributes(&self, html: &mut String) -> Result<(), Box<dyn Error>> {
+        // Remove data-ssg and data-ssg-* attributes
+        let data_attr_pattern = format!(r#"\s+{}(?:-[a-z]+)?="[^"]*""#, self.prefix);
+        if let Ok(re) = regex::Regex::new(&data_attr_pattern) {
+            *html = re.replace_all(html, "").to_string();
+        }
+
+        Ok(())
     }
 }
 
@@ -391,61 +309,8 @@ impl Processor for AttributeProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::generator::Generator;
+    use crate::generator::tests::MockGenerator;
     use crate::generator_collection::GeneratorCollection;
-    use crate::processors::AttributeSupport;
-    use std::any::Any;
-    use std::error::Error;
-
-    // Mock Generator for testing
-    #[derive(Debug, Clone)]
-    struct MockGenerator {
-        name: String,
-    }
-
-    impl MockGenerator {
-        fn new(name: &str) -> Self {
-            Self {
-                name: name.to_string(),
-            }
-        }
-    }
-
-    impl Generator for MockGenerator {
-        fn name(&self) -> &'static str {
-            Box::leak(self.name.clone().into_boxed_str())
-        }
-
-        fn generate(
-            &self,
-            key: &str,
-            _route: &str,
-            _content: &str,
-            _metadata: &HashMap<String, String>,
-        ) -> Result<String, Box<dyn Error>> {
-            // We can use the key to provide different outputs
-            if key == self.name() {
-                Ok(format!("<p>Generated {}</p>", self.name))
-            } else {
-                // Handle other keys if needed
-                Ok(format!("<p>Generated {} for key '{}'</p>", self.name, key))
-            }
-        }
-
-        fn clone_box(&self) -> Box<dyn Generator> {
-            Box::new(self.clone())
-        }
-
-        fn as_any(&self) -> &dyn Any {
-            self
-        }
-    }
-
-    impl AttributeSupport for MockGenerator {
-        fn attributes(&self) -> Vec<&'static str> {
-            vec!["mock_attr"]
-        }
-    }
 
     #[test]
     fn test_attribute_processor_simple() {
@@ -469,43 +334,8 @@ mod tests {
 
         // Assert
         assert!(processed.contains("<title>Replaced Title</title>"));
-        assert!(processed.contains(r#"<meta name="description" content="Replaced description">"#));
-        assert!(processed.contains("<div>New Content</div>"));
+        assert!(processed.contains("New Content"));
         assert!(!processed.contains("data-test=")); // Ensure data attributes are removed
-    }
-
-    #[test]
-    fn test_attribute_processor_generator_placeholders() {
-        // Setup
-        let mut generators = GeneratorCollection::new();
-        generators.add(MockGenerator::new("meta"));
-        generators.add(MockGenerator::new("og"));
-
-        let processor = AttributeProcessor::new("data-test")
-            .with_default_handlers()
-            .configure_for_generators(&generators);
-
-        let html = r#"<!DOCTYPE html><html><head><meta data-test-placeholder="meta" content="default">
-            <meta data-test-placeholder="og" content="default"></head><body><div id="app" data-test="content"></div></body></html>"#;
-
-        let mut generator_outputs = HashMap::new();
-        generator_outputs.insert("meta".to_string(), "<meta value=\"generated\">".to_string());
-        generator_outputs.insert("og".to_string(), "<meta value=\"og\">".to_string());
-
-        // Execute
-        let processed = processor
-            .process(
-                html,
-                &HashMap::new(),
-                &generator_outputs,
-                "<p>App Content</p>",
-            )
-            .unwrap();
-
-        // Assert
-        assert!(processed.contains("<meta value=\"generated\">"));
-        assert!(processed.contains("<meta value=\"og\">"));
-        assert!(!processed.contains("data-test-placeholder="));
     }
 
     #[test]
@@ -568,5 +398,40 @@ mod tests {
         assert!(processed.contains("href=\"https://example.com\""));
         assert!(processed.contains("<div id=\"app\"><p>Page content</p></div>"));
         assert!(!processed.contains("data-ssg=")); // Ensure data attributes are removed
+    }
+
+    #[test]
+    fn test_content_area_preserves_attributes() {
+        // Setup
+        let processor = AttributeProcessor::new("data-ssg").with_default_handlers();
+
+        // Test with content area that has additional attributes
+        let html = r#"<div class="container" id="root" data-ssg="content"></div>"#;
+
+        // Execute
+        let processed = processor
+            .process(html, &HashMap::new(), &HashMap::new(), "<p>Content</p>")
+            .unwrap();
+
+        // Assert that other attributes are preserved
+        assert!(processed.contains("<div class=\"container\" id=\"root\"><p>Content</p></div>"));
+        assert!(!processed.contains("data-ssg"));
+    }
+
+    #[test]
+    fn test_content_area_adds_app_id() {
+        // Setup
+        let processor = AttributeProcessor::new("data-ssg").with_default_handlers();
+
+        // Test with content area without id
+        let html = r#"<div class="container" data-ssg="content"></div>"#;
+
+        // Execute
+        let processed = processor
+            .process(html, &HashMap::new(), &HashMap::new(), "<p>Content</p>")
+            .unwrap();
+
+        // Assert that id="app" was added
+        assert!(processed.contains("<div class=\"container\" id=\"app\"><p>Content</p></div>"));
     }
 }

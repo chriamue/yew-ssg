@@ -1,6 +1,5 @@
 use crate::generator::Generator;
 use crate::processors::GeneratorOutputSupport;
-pub use crate::processors::{AttributeSupport, TemplateVariableSupport};
 use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
@@ -119,24 +118,6 @@ impl GeneratorOutputSupport for OpenGraphGenerator {
     fn supported_outputs(&self) -> Vec<&'static str> {
         vec![
             "open_graph",
-            "og:title",
-            "og:description",
-            "og:url",
-            "og:image",
-            "og:site_name",
-        ]
-    }
-}
-
-impl AttributeSupport for OpenGraphGenerator {
-    fn attributes(&self) -> Vec<&'static str> {
-        vec!["open_graph"]
-    }
-}
-
-impl TemplateVariableSupport for OpenGraphGenerator {
-    fn template_variables(&self) -> Vec<&'static str> {
-        vec![
             "og:title",
             "og:description",
             "og:url",
