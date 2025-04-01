@@ -11,6 +11,7 @@ use yew_ssg::generators::{
     MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator, TwitterCardGenerator,
 };
 use yew_ssg::prelude::*;
+use yew_ssg::processors::PlaceholderProcessor;
 
 // Environment variable names
 const ENV_BASE_URL: &str = "BASE_URL";
@@ -134,6 +135,14 @@ fn create_global_metadata(config: &SiteConfig) -> HashMap<String, String> {
     );
     metadata.insert("default_keywords".to_string(), DEFAULT_KEYWORDS.to_string());
 
+    // Add shared meta values
+    metadata.insert("charset".to_string(), "utf-8".to_string());
+    metadata.insert(
+        "viewport".to_string(),
+        "width=device-width, initial-scale=1.0".to_string(),
+    );
+    metadata.insert("og:type".to_string(), "website".to_string());
+
     if !config.twitter_handle.is_empty() {
         metadata.insert("twitter_site".to_string(), config.twitter_handle.clone());
     }
@@ -165,29 +174,19 @@ fn get_route_meta_content(route: &Route) -> (&'static str, &'static str) {
 
 /// Add SEO generators to the configuration
 fn add_generators(builder: SsgConfigBuilder) -> SsgConfigBuilder {
-    info!("Adding SEO generators...");
+    info!("Using default generators with customization...");
 
+    // Default generators will be added, we just need to add our custom ones or override defaults
     builder
-        // Title tag generator
-        .add_generator(TitleGenerator)
-        // Meta tags generator (description, keywords, canonical)
+        // Override the meta tag generator with our specific defaults
         .add_generator(MetaTagGenerator {
             default_description: "A statically generated Yew application.".to_string(),
             default_keywords: vec!["yew".to_string(), "rust".to_string()],
         })
-        // Open Graph tags for social sharing
+        // Override the Open Graph generator with site name
         .add_generator(OpenGraphGenerator {
-            site_name: "".to_string(),     // From metadata
-            default_image: "".to_string(), // From metadata
-        })
-        // Twitter Card tags
-        .add_generator(TwitterCardGenerator {
-            default_card_type: "summary_large_image".to_string(),
-            twitter_site: None, // From metadata
-        })
-        // Robots meta tag
-        .add_generator(RobotsMetaGenerator {
-            default_robots: "index, follow".to_string(),
+            site_name: DEFAULT_SITE_NAME.to_string(),
+            default_image: "".to_string(),
         })
 }
 
@@ -211,6 +210,9 @@ fn add_route_metadata(builder: SsgConfigBuilder, base_url: &str) -> SsgConfigBui
         route_meta.insert("canonical".to_string(), absolute_url.clone());
         route_meta.insert("url".to_string(), absolute_url);
 
+        // Add og:type for each route
+        route_meta.insert("og:type".to_string(), "website".to_string());
+
         // Handle robots directive
         if route == Route::NotFound {
             route_meta.insert("robots".to_string(), "noindex, nofollow".to_string());
@@ -225,32 +227,8 @@ fn add_route_metadata(builder: SsgConfigBuilder, base_url: &str) -> SsgConfigBui
 }
 
 fn add_processors(builder: SsgConfigBuilder) -> SsgConfigBuilder {
-    info!("Adding processors...");
-
-    // Create attribute processor for content and common attributes
-    let content_processor = AttributeProcessor::new("data-ssg")
-        .register_attribute_handler("title", |value, _metadata| {
-            format!("<title>{}</title>", value)
-        })
-        .register_attribute_handler("description", |value, _metadata| {
-            format!("<meta name=\"description\" content=\"{}\">", value)
-        })
-        .register_attribute_handler("keywords", |value, _metadata| {
-            format!("<meta name=\"keywords\" content=\"{}\">", value)
-        })
-        .register_content_handler(|content| format!("<div id=\"app\">{}</div>", content));
-
-    // Add the new HtmlElementProcessor for placeholder elements
-    let html_processor = HtmlElementProcessor::new("data-ssg");
-
-    // Add standard variable processor
-    let variable_processor = TemplateVariableProcessor::new();
-
-    // Add all processors
+    info!("Using default processors...");
     builder
-        .add_processor(content_processor)
-        .add_processor(html_processor) // New processor for data-ssg-placeholder elements
-        .add_processor(variable_processor) // For {{variable}} substitution
 }
 
 fn print_success_info(generator: &StaticSiteGenerator) {
