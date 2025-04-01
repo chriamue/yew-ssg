@@ -79,7 +79,7 @@ impl SsgConfig {
             self.processors.add(template_processor);
 
             // Attribute processor for attribute-based content
-            let attribute_processor = AttributeProcessor::new("data-ssg").with_default_handlers();
+            let attribute_processor = AttributeProcessor::new("data-ssg", None);
             self.processors.add(attribute_processor);
         }
         self

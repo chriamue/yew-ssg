@@ -429,7 +429,7 @@ mod tests {
         );
 
         // Create a processor and process the content directly
-        let attribute_processor = AttributeProcessor::new("data-ssg").with_default_handlers();
+        let attribute_processor = AttributeProcessor::new("data-ssg", None).with_default_handlers();
         let processed_content = attribute_processor
             .process(
                 content_with_attributes,
@@ -501,7 +501,7 @@ mod tests {
         );
 
         // Process the template with our AttributeProcessor
-        let attribute_processor = AttributeProcessor::new("data-ssg").with_default_handlers();
+        let attribute_processor = AttributeProcessor::new("data-ssg", None).with_default_handlers();
         let processed_template = attribute_processor
             .process(template, &metadata, &HashMap::new(), "<p>Page content</p>")
             .unwrap();
