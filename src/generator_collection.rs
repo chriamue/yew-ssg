@@ -1,7 +1,5 @@
 use crate::generator::Generator;
 use crate::processors::GeneratorOutputSupport;
-use std::collections::HashMap;
-use std::error::Error;
 use std::slice::Iter;
 
 #[derive(Debug, Clone)]
@@ -20,47 +18,8 @@ impl GeneratorCollection {
         self.generators.push(Box::new(generator));
     }
 
-    pub fn run_all(
-        &self,
-        route: &str,
-        content: &str,
-        metadata: &HashMap<String, String>,
-    ) -> Result<HashMap<String, String>, Box<dyn Error>> {
-        let mut results = HashMap::new();
-
-        for generator in &self.generators {
-            // Generate content using the generator's name as the key
-            let name = generator.name();
-            let result = generator.generate(name, route, content, metadata)?;
-            results.insert(name.to_string(), result);
-
-            // Check for additional output keys
-            if let Some(support) = self.try_get_output_support(generator) {
-                for key in support.supported_outputs() {
-                    // Skip the main output we already processed
-                    if key == name {
-                        continue;
-                    }
-
-                    // Generate specific output for this key
-                    match generator.generate(key, route, content, metadata) {
-                        Ok(output) => {
-                            results.insert(key.to_string(), output);
-                        }
-                        Err(_) => {
-                            // Silently skip errors for additional outputs
-                            // We already have the main output
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(results)
-    }
-
     /// Try to extract GeneratorOutputSupport from a generator
-    fn try_get_output_support<'a>(
+    pub fn try_get_output_support<'a>(
         &self,
         generator: &'a Box<dyn Generator>,
     ) -> Option<&'a dyn GeneratorOutputSupport> {

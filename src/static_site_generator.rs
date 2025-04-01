@@ -123,14 +123,40 @@ impl StaticSiteGenerator {
             // 1. Render the Yew component to HTML
             let content = self.render_route(&route, switch_fn.clone()).await?;
 
-            // 2. Get metadata and run generators
+            // 2. Get metadata for the route
             let metadata = self.config.get_metadata_for_route(&route_path);
-            let generator_outputs =
-                self.config
-                    .generators
-                    .run_all(&route_path, &content, &metadata)?;
 
-            // 3. Run processors on the content
+            // 3. Generate outputs from all generators
+            let mut generator_outputs = HashMap::new();
+
+            for generator in &self.config.generators.generators {
+                // Generate the main output using the generator's name
+                let name = generator.name();
+                let result = generator.generate(name, &route_path, &content, &metadata)?;
+                generator_outputs.insert(name.to_string(), result);
+
+                // Check if generator supports additional outputs
+                if let Some(support) = self.config.generators.try_get_output_support(generator) {
+                    // Generate additional outputs
+                    for key in support.supported_outputs() {
+                        // Skip the main output we already did
+                        if key == name {
+                            continue;
+                        }
+
+                        match generator.generate(key, &route_path, &content, &metadata) {
+                            Ok(output) => {
+                                generator_outputs.insert(key.to_string(), output);
+                            }
+                            Err(e) => {
+                                warn!("Failed to generate '{}' output: {}", key, e);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Run processors on the content
             let processed_content = self.config.processors.process_all(
                 &content,
                 &metadata,
@@ -138,7 +164,7 @@ impl StaticSiteGenerator {
                 &content,
             )?;
 
-            // 4. Create the final HTML
+            // 5. Create the final HTML
             let html = self.wrap_html(
                 &processed_content,
                 &route_path,
@@ -146,7 +172,7 @@ impl StaticSiteGenerator {
                 &generator_outputs,
             )?;
 
-            // 5. Write to output file
+            // 6. Write to output file
             let (dir_path, file_path) = self.determine_output_path(&route_path);
             fs::create_dir_all(&dir_path)?;
             fs::write(&file_path, html)?;
