@@ -1,5 +1,5 @@
 use crate::generator::Generator;
-use crate::processors::{AttributeSupport, TemplateVariableSupport};
+use crate::processors::{AttributeSupport, GeneratorOutputSupport, TemplateVariableSupport};
 use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
@@ -34,6 +34,12 @@ impl Generator for RobotsMetaGenerator {
 
     fn clone_box(&self) -> Box<dyn Generator> {
         Box::new(self.clone())
+    }
+}
+
+impl GeneratorOutputSupport for RobotsMetaGenerator {
+    fn supported_outputs(&self) -> Vec<&'static str> {
+        vec!["robots_meta"]
     }
 }
 
