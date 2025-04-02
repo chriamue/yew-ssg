@@ -36,7 +36,7 @@ jobs:
           trunk build --release --public-url /yew-ssg/
 
           # Run the SSG to generate static pages
-          cargo run --bin ssg --features=ssg
+          BASE_URL=https://blog.chriamue.de/yew-ssg/ cargo run --bin ssg --features=ssg
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
