@@ -3,72 +3,152 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-concepts]]
 == Cross-cutting Concepts
 
+=== Domain Model
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Content
-This section describes overall, principal regulations and solution ideas that are relevant in multiple parts (= cross-cutting) of your system.
-Such concepts are often related to multiple building blocks.
-They can include many different topics, such as
+[plantuml]
+----
+@startuml
+class "Static Site Generator" as SSG {
+  Renders Yew components to HTML
+  Processes templates
+  Applies generators
+  Writes static files
+}
 
-* models, especially domain models
-* architecture or design patterns
-* rules for using specific technology
-* principal, often technical decisions of an overarching (= cross-cutting) nature
-* implementation rules
+class "Generator" as Gen {
+  Produces HTML content
+  May support multiple outputs
+  Can access metadata
+}
 
+class "Processor" as Proc {
+  Transforms HTML content
+  May replace variables
+  May process attributes
+}
 
-.Motivation
-Concepts form the basis for _conceptual integrity_ (consistency, homogeneity) of the architecture. 
-Thus, they are an important contribution to achieve inner qualities of your system.
+class "Template" as Templ {
+  Contains placeholders
+  May have special attributes
+  Defines page structure
+}
 
-Some of these concepts cannot be assigned to individual building blocks, e.g. security or safety. 
+class "Route" as Route {
+  Path in the application
+  Associated component
+  Metadata for SEO
+}
 
+class "Metadata" as Meta {
+  Global metadata
+  Route-specific metadata
+  Used by generators
+  Referenced in templates
+}
 
-.Form
-The form can be varied:
+class "Output" as Out {
+  Static HTML files
+  Directory structure matching routes
+  Optimized for SEO
+}
 
-* concept papers with any kind of structure
-* cross-cutting model excerpts or scenarios using notations of the architecture views
-* sample implementations, especially for technical concepts
-* reference to typical usage of standard frameworks (e.g. using Hibernate for object/relational mapping)
+SSG --> Gen : uses
+SSG --> Proc : uses
+SSG --> Templ : applies
+SSG --> Route : processes
+SSG --> Meta : references
+SSG --> Out : produces
 
-.Structure
-A potential (but not mandatory) structure for this section could be:
+Gen --> Meta : reads
+Gen --> Out : contributes to
+Proc --> Templ : transforms
+Proc --> Out : contributes to
+Templ --> Out : shapes
+Route --> Meta : has
+Route --> Out : mapped to
+@enduml
+----
 
-* Domain concepts
-* User Experience concepts (UX)
-* Safety and security concepts
-* Architecture and design patterns
-* "Under-the-hood"
-* development concepts
-* operational concepts
+The domain model shows the key concepts in Yew-SSG and their relationships:
 
-Note: it might be difficult to assign individual concepts to one specific topic
-on this list.
+* The Static Site Generator is the core component
+* Generators produce HTML content based on metadata
+* Processors transform HTML templates
+* Templates define the page structure with placeholders
+* Routes represent application paths with associated components
+* Metadata provides information for SEO and templating
+* Output is the static HTML files produced by the generation process
 
-image::08-concepts-EN.drawio.png["Possible topics for crosscutting concepts"]
+=== Generator-Processor Pattern
 
+Yew-SSG uses a two-stage approach to content generation and processing:
 
-.Further Information
+1. *Generators* create HTML content for specific purposes:
+   * They follow the "Generate" trait
+   * They have access to metadata, route information, and content
+   * They produce HTML fragments for specific keys (e.g., "title", "meta_tags")
+   * They can support multiple output keys
 
-See https://docs.arc42.org/section-8/[Concepts] in the arc42 documentation.
-****
-endif::arc42help[]
+2. *Processors* transform HTML:
+   * They follow the "Processor" trait
+   * They take HTML and transform it according to their rules
+   * They can access metadata and generator outputs
+   * They run in sequence, each taking the output of the previous processor
 
-=== _<Concept 1>_
+This separation allows for:
+* Clear responsibility boundaries
+* Extensibility through custom generators and processors
+* Pipeline-style processing with composition
+* Reuse of components across different applications
 
-_<explanation>_
+=== Template Variable Substitution
 
+Template variables use the `{{variable}}` syntax:
 
+* Variables can reference metadata keys or generator outputs
+* Generators have priority over metadata when both exist
+* The TemplateVariableProcessor handles the substitution
+* Variables can be used in HTML templates and attribute values
 
-=== _<Concept 2>_
+Example:
+```html
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+```
 
-_<explanation>_
+=== Attribute-Based Templating
 
-...
+Data attributes provide a powerful way to template HTML:
 
-=== _<Concept n>_
+* `data-ssg="key"` - Replace element content
+* `data-ssg-attr="key"` - Replace attribute value
+* `data-ssg-placeholder="key"` - Replace entire element
 
-_<explanation>_
+This approach:
+* Keeps templates clean and semantic
+* Allows for HTML inspection tools to work properly
+* Makes templates more maintainable
+* Enables complex replacements like blocks of meta tags
+
+Example:
+```html
+<div data-ssg-placeholder="meta_tags">
+  <!-- Will be replaced with generated meta tags -->
+</div>
+```
+
+=== Build Process Integration
+
+Yew-SSG integrates into the build process:
+
+* A separate binary target uses the library
+* It runs during the build phase, not at runtime
+* It pre-renders all routes defined in the router
+* It generates static HTML files in the output directory
+* The output can be deployed to any static file server
+
+This approach provides:
+* Clean separation of concerns
+* No runtime overhead for end users
+* Simple deployment to any hosting solution
+* Compatibility with CI/CD pipelines

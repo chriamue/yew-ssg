@@ -3,35 +3,90 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-design-decisions]]
 == Architecture Decisions
 
+=== ADR 1: Trait-Based Architecture for Extensibility
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Contents
-Important, expensive, large scale or risky architecture decisions including rationales.
-With "decisions" we mean selecting one alternative based on given criteria.
+*Context:*
 
-Please use your judgement to decide whether an architectural decision should be documented
-here in this central section or whether you better document it locally
-(e.g. within the white box template of one building block).
+The system needs to be extensible to support various HTML generation and processing needs across different projects.
 
-Avoid redundancy. 
-Refer to section 4, where you already captured the most important decisions of your architecture.
+*Decision:*
 
-.Motivation
-Stakeholders of your system should be able to comprehend and retrace your decisions.
+Use Rust's trait system to define clear interfaces for generators and processors, allowing for custom implementations.
 
-.Form
-Various options:
+*Consequences:*
 
-* ADR (https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions[Documenting Architecture Decisions]) for every important decision
-* List or table, ordered by importance and consequences or:
-* more detailed in form of separate sections per decision
+* *Positive:* Users can easily extend the system with custom generators and processors
+* *Positive:* Clean separation of concerns with well-defined interfaces
+* *Positive:* Types can implement multiple traits for different capabilities
+* *Negative:* Slightly more complex than a function-based approach
+* *Negative:* Requires understanding of Rust's trait system
 
-.Further Information
+=== ADR 2: Generator/Processor Separation
 
-See https://docs.arc42.org/section-9/[Architecture Decisions] in the arc42 documentation.
-There you will find links and examples about ADR.
+*Context:*
 
-****
-endif::arc42help[]
+The system needs to both generate content and process HTML, which are distinct concerns.
+
+*Decision:*
+
+Separate content generation (Generators) from HTML transformation (Processors) with different traits and execution phases.
+
+*Consequences:*
+
+* *Positive:* Clear separation of concerns
+* *Positive:* Generators can focus on specific content types
+* *Positive:* Processors can transform HTML in a pipeline
+* *Positive:* Better testability for individual components
+* *Negative:* Requires coordination between the two systems
+
+=== ADR 3: Attribute-Based Templating
+
+*Context:*
+
+HTML templates need a way to include dynamic content without sacrificing validity and readability.
+
+*Decision:*
+
+Use HTML data attributes (`data-ssg-*`) for templating directives.
+
+*Consequences:*
+
+* *Positive:* Templates remain valid HTML
+* *Positive:* Templates are inspectable with standard HTML tools
+* *Positive:* Approach is intuitive for web developers
+* *Positive:* Flexible replacement strategies (content, attributes, placeholders)
+* *Negative:* Slightly more verbose than some alternative syntaxes
+
+=== ADR 4: Metadata-Driven Generation
+
+*Context:*
+
+Different routes need different SEO content and page information.
+
+*Decision:*
+
+Use a metadata system with global and route-specific options to drive content generation.
+
+*Consequences:*
+
+* *Positive:* Centralized configuration of SEO information
+* *Positive:* Ability to override global settings for specific routes
+* *Positive:* Consistent handling of metadata across generators
+* *Negative:* Requires careful management of metadata hierarchy
+
+=== ADR 5: Builder Pattern for Configuration
+
+*Context:*
+
+The system has many configuration options that need to be set up in a clear, fluent manner.
+
+*Decision:*
+
+Use the Builder pattern for configuration with sensible defaults.
+
+*Consequences:*
+
+* *Positive:* Fluent, readable API for configuration
+* *Positive:* Clear defaults with the ability to override
+* *Positive:* Future extensibility without breaking changes
+* *Negative:* Slightly more code than direct struct initialization
