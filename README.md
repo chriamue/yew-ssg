@@ -1,6 +1,8 @@
-# yew-ssg
+# yew-ssg 🚀
 
 A static site generator for Yew applications that helps you pre-render your Yew apps for better SEO and load times.
+
+> ⚠️ **PERSONAL PROJECT DISCLAIMER**: This is my personal project focused on fulfilling my specific needs. It is currently in alpha stage, not actively maintained, and **should not be used in production**. Feel free to fork, provide feedback, or use for experimental purposes. Parts of the documentation and code were assisted by AI.
 
 ## Features
 
@@ -77,7 +79,7 @@ async fn main() {
 
 ## Template System
 
-### Basic Template Variables
+### Basic Template Variables ✨
 
 Use double curly braces for variable substitution:
 
@@ -86,7 +88,7 @@ Use double curly braces for variable substitution:
 <meta name="description" content="{{ description }}">
 ```
 
-### Attribute-Based Templating
+### Attribute-Based Templating 🔧
 
 The attribute processor provides three powerful ways to template your HTML:
 
@@ -94,7 +96,7 @@ The attribute processor provides three powerful ways to template your HTML:
 2. `data-ssg-*`: Attribute value replacement
 3. `data-ssg-placeholder`: Complete element replacement
 
-#### Content Replacement with data-ssg
+#### Content Replacement with data-ssg 📄
 
 Replace element content with generated or metadata values:
 
@@ -114,7 +116,7 @@ The processor looks for content in this order:
 2. Metadata values
 3. If no replacement is found, the original content is preserved
 
-#### Attribute Replacement with data-ssg-*
+#### Attribute Replacement with data-ssg-* 🏷️
 
 Update specific attributes with generated or metadata values:
 
@@ -136,7 +138,7 @@ Update specific attributes with generated or metadata values:
       name="default-name">
 ```
 
-#### Complete Element Replacement with data-ssg-placeholder
+#### Complete Element Replacement with data-ssg-placeholder 🔄
 
 Replace the entire element with generated content:
 
@@ -153,7 +155,7 @@ Replace the entire element with generated content:
 
 Placeholders can insert any HTML, including multiple elements, which makes them perfect for injecting blocks of meta tags or other complex structures.
 
-### Metadata Configuration
+### Metadata Configuration 📋
 
 Add global and route-specific metadata:
 
@@ -172,7 +174,7 @@ let config = SsgConfigBuilder::new()
     .build();
 ```
 
-### Built-in Generators
+### Built-in Generators 🛠️
 
 yew-ssg includes several built-in generators:
 
@@ -201,7 +203,7 @@ let config = SsgConfigBuilder::new()
     .build();
 ```
 
-### Generator Output Priority
+### Generator Output Priority ⚡
 
 When multiple sources can provide content for a template variable or attribute:
 
@@ -212,7 +214,7 @@ When multiple sources can provide content for a template variable or attribute:
 
 This allows flexibility in combining different content sources while maintaining a clear precedence order.
 
-### Custom Generators
+### Custom Generators 🧰
 
 Implement your own generators:
 
@@ -250,27 +252,42 @@ impl Generator for CustomGenerator {
 }
 ```
 
-## Processing Pipeline
+## Processing Pipeline 🔄
 
 The yew-ssg processing pipeline consists of:
 
-1. **Content generation**: Pre-renders Yew components to HTML
-2. **Template processing**: Applies HTML templates with variables
-3. **Attribute processing**: Processes special data-ssg attributes
-4. **Output generation**: Writes files to the output directory
+1. **Content generation** 📝: Pre-renders Yew components to HTML
+2. **Template processing** 🧩: Applies HTML templates with variables
+3. **Attribute processing** 🔍: Processes special data-ssg attributes
+4. **Output generation** 📤: Writes files to the output directory
 
 Each stage can be customized or extended as needed.
 
-## Example Projects
+## Documentation 📚
+
+For more detailed architecture documentation, check out:
+- [Architecture Documentation (arc42)](https://blog.chriamue.de/yew-ssg/docs/)
+
+## Example Projects 🔍
 
 Check out the examples directory for complete project examples:
 
 - `examples/about-page`: Basic example
 
-## Contributing
+## Project Status 🚧
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+- ⚠️ **Alpha Stage**: Expect breaking changes and incomplete features
+- 🔬 **Experimental**: Created primarily for personal projects
+- 📈 **Development**: Sporadic updates based on personal needs
+- 🧪 **Testing**: Limited test coverage, use at your own risk
 
-## License
+## Contributing 🤝
+
+While this is primarily a personal project, feedback and contributions are welcome! Feel free to:
+- Open issues for bugs or feature suggestions
+- Submit pull requests for improvements
+- Fork the project for your own needs
+
+## License 📄
 
 This project is licensed under the MIT License - see the LICENSE file for details.
