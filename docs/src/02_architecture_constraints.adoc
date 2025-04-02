@@ -3,27 +3,32 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-architecture-constraints]]
 == Architecture Constraints
 
+=== Technical Constraints
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Contents
-Any requirement that constraints software architects in their freedom of design and implementation decisions or decision about the development process. These constraints sometimes go beyond individual systems and are valid for whole organizations and companies.
+[options="header",cols="1,4"]
+|===
+|Constraint |Explanation
+|Rust Ecosystem |Must be built with and for Rust, compatible with Rust's ecosystem and tooling
+|Yew Compatibility |Must support Yew's component model and routing system
+|WebAssembly Support |Must work with Yew's WebAssembly target
+|Minimal Dependencies |Should minimize dependencies to reduce build time and package size
+|===
 
-.Motivation
-Architects should know exactly where they are free in their design decisions and where they must adhere to constraints.
-Constraints must always be dealt with; they may be negotiable, though.
+=== Organizational Constraints
 
-.Form
-Simple tables of constraints with explanations.
-If needed you can subdivide them into
-technical constraints, organizational and political constraints and
-conventions (e.g. programming or versioning guidelines, documentation or naming conventions)
+[options="header",cols="1,4"]
+|===
+|Constraint |Explanation
+|Open Source |Project is open source under MIT license, requiring transparent development
+|Community Feedback |Development direction should be influenced by community needs and feedback
+|===
 
+=== Conventions
 
-.Further Information
-
-See https://docs.arc42.org/section-2/[Architecture Constraints] in the arc42 documentation.
-
-****
-endif::arc42help[]
+[options="header",cols="1,4"]
+|===
+|Convention |Explanation
+|Rust API Guidelines |Follow Rust API design guidelines for consistent, idiomatic interfaces
+|Semantic Versioning |Follow semver for versioning to ensure compatibility understanding
+|Documentation |Every public API must be documented with examples
+|===
