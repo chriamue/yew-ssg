@@ -90,49 +90,68 @@ Use double curly braces for variable substitution:
 
 The attribute processor provides three powerful ways to template your HTML:
 
-1. `data-ssg`: Direct content replacement
-2. `data-ssg-a`: Attribute value replacement
-3. `data-ssg-placeholder`: Generator output placement
+1. `data-ssg`: Content replacement
+2. `data-ssg-*`: Attribute value replacement
+3. `data-ssg-placeholder`: Complete element replacement
 
 #### Content Replacement with data-ssg
 
-Replace element content with metadata values:
+Replace element content with generated or metadata values:
 
 ```html
+<!-- Replaces content with generated title or metadata title -->
 <title data-ssg="title">Default Title</title>
+
+<!-- Special case for main content -->
+<div data-ssg="content">Loading...</div>
+
+<!-- Uses metadata value with fallback to default -->
 <h1 data-ssg="page_heading">Default Heading</h1>
 ```
 
-#### Attribute Replacement with data-ssg-a
+The processor looks for content in this order:
+1. Generated content from generators
+2. Metadata values
+3. If no replacement is found, the original content is preserved
 
-Update specific attributes with metadata values:
+#### Attribute Replacement with data-ssg-*
+
+Update specific attributes with generated or metadata values:
 
 ```html
+<!-- Update the content attribute -->
 <meta name="description"
-      data-ssg="description"
-      data-ssg-a="content"
+      data-ssg-content="description"
       content="Default description">
 
+<!-- Update the href attribute -->
 <link rel="canonical"
-      data-ssg="canonical_url"
-      data-ssg-a="href"
+      data-ssg-href="canonical_url"
       href="https://example.com">
+
+<!-- Multiple attributes on one element -->
+<meta data-ssg-content="meta-content"
+      data-ssg-name="meta-name"
+      content="default-content"
+      name="default-name">
 ```
 
-#### Generator Output Placement with data-ssg-placeholder
+#### Complete Element Replacement with data-ssg-placeholder
 
-Place generator outputs in specific locations:
+Replace the entire element with generated content:
 
 ```html
-<!-- Meta tags will be inserted here -->
-<meta data-ssg-placeholder="meta_tags" content="">
+<!-- Meta tags will be inserted here, replacing the entire div -->
+<div data-ssg-placeholder="meta_tags">Loading meta tags...</div>
 
 <!-- Open Graph tags will be inserted here -->
-<meta data-ssg-placeholder="open_graph" content="">
+<div data-ssg-placeholder="open_graph">Loading Open Graph tags...</div>
 
 <!-- Twitter Card tags will be inserted here -->
-<meta data-ssg-placeholder="twitter_card" content="">
+<div data-ssg-placeholder="twitter_card">Loading Twitter Card tags...</div>
 ```
+
+Placeholders can insert any HTML, including multiple elements, which makes them perfect for injecting blocks of meta tags or other complex structures.
 
 ### Metadata Configuration
 
@@ -182,6 +201,17 @@ let config = SsgConfigBuilder::new()
     .build();
 ```
 
+### Generator Output Priority
+
+When multiple sources can provide content for a template variable or attribute:
+
+1. Generator outputs have highest priority
+2. Generator-computed values come next
+3. Metadata values are used as fallback
+4. Original content is preserved if no replacement is found
+
+This allows flexibility in combining different content sources while maintaining a clear precedence order.
+
 ### Custom Generators
 
 Implement your own generators:
@@ -197,12 +227,17 @@ impl Generator for CustomGenerator {
 
     fn generate(
         &self,
+        key: &str,
         route: &str,
         content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {
         Ok(format!("<custom-element>{}</custom-element>",
                   metadata.get("custom").unwrap_or(&String::new())))
+    }
+
+    fn supports_output(&self, key: &str) -> bool {
+        key == "custom_element"
     }
 
     fn clone_box(&self) -> Box<dyn Generator> {
@@ -214,6 +249,17 @@ impl Generator for CustomGenerator {
     }
 }
 ```
+
+## Processing Pipeline
+
+The yew-ssg processing pipeline consists of:
+
+1. **Content generation**: Pre-renders Yew components to HTML
+2. **Template processing**: Applies HTML templates with variables
+3. **Attribute processing**: Processes special data-ssg attributes
+4. **Output generation**: Writes files to the output directory
+
+Each stage can be customized or extended as needed.
 
 ## Example Projects
 
