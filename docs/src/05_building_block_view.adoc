@@ -1,225 +1,272 @@
 ifndef::imagesdir[:imagesdir: ../images]
 
 [[section-building-block-view]]
-
-
 == Building Block View
-
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Content
-The building block view shows the static decomposition of the system into building blocks (modules, components, subsystems, classes, interfaces, packages, libraries, frameworks, layers, partitions, tiers, functions, macros, operations, data structures, ...) as well as their dependencies (relationships, associations, ...)
-
-This view is mandatory for every architecture documentation.
-In analogy to a house this is the _floor plan_.
-
-.Motivation
-Maintain an overview of your source code by making its structure understandable through
-abstraction.
-
-This allows you to communicate with your stakeholder on an abstract level without disclosing implementation details.
-
-.Form
-The building block view is a hierarchical collection of black boxes and white boxes
-(see figure below) and their descriptions.
-
-image::05_building_blocks-EN.png["Hierarchy of building blocks"]
-
-*Level 1* is the white box description of the overall system together with black
-box descriptions of all contained building blocks.
-
-*Level 2* zooms into some building blocks of level 1.
-Thus it contains the white box description of selected building blocks of level 1, together with black box descriptions of their internal building blocks.
-
-*Level 3* zooms into selected building blocks of level 2, and so on.
-
-
-.Further Information
-
-See https://docs.arc42.org/section-5/[Building Block View] in the arc42 documentation.
-
-****
-endif::arc42help[]
 
 === Whitebox Overall System
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you describe the decomposition of the overall system using the following white box template. It contains
+[plantuml]
+----
+@startuml
+package "yew-ssg" {
+  [StaticSiteGenerator] as SSG
+  [SsgConfig] as Config
+  [Generators] as GenCol
+  [Processors] as ProcCol
 
- * an overview diagram
- * a motivation for the decomposition
- * black box descriptions of the contained building blocks. For these we offer you alternatives:
+  package "generators" {
+    [TitleGenerator]
+    [MetaTagGenerator]
+    [OpenGraphGenerator]
+    [TwitterCardGenerator]
+    [RobotsMetaGenerator]
+  }
 
-   ** use _one_ table for a short and pragmatic overview of all contained building blocks and their interfaces
-   ** use a list of black box descriptions of the building blocks according to the black box template (see below).
-   Depending on your choice of tool this list could be sub-chapters (in text files), sub-pages (in a Wiki) or nested elements (in a modeling tool).
+  package "processors" {
+    [TemplateVariableProcessor]
+    [AttributeProcessor]
+  }
+}
 
+Config --> SSG : configures
+GenCol --> SSG : provides content
+ProcCol --> SSG : processes HTML
 
- * (optional:) important interfaces, that are not explained in the black box templates of a building block, but are very important for understanding the white box.
-Since there are so many ways to specify interfaces why do not provide a specific template for them.
- In the worst case you have to specify and describe syntax, semantics, protocols, error handling,
- restrictions, versions, qualities, necessary compatibilities and many things more.
-In the best case you will get away with examples or simple signatures.
+[TitleGenerator] --> GenCol : implements
+[MetaTagGenerator] --> GenCol : implements
+[OpenGraphGenerator] --> GenCol : implements
+[TwitterCardGenerator] --> GenCol : implements
+[RobotsMetaGenerator] --> GenCol : implements
 
-****
-endif::arc42help[]
+[TemplateVariableProcessor] --> ProcCol : implements
+[AttributeProcessor] --> ProcCol : implements
 
-_**<Overview Diagram>**_
+@enduml
+----
 
-Motivation::
+*Motivation:*
 
-_<text explanation>_
+The yew-ssg system is structured around a core StaticSiteGenerator that coordinates the generation process. It uses a configuration (SsgConfig) to determine behavior and leverages collections of generators and processors to create and transform content.
 
+*Contained Building Blocks:*
 
-Contained Building Blocks::
-_<Description of contained building block (black boxes)>_
-
-Important Interfaces::
-_<Description of important interfaces>_
-
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Insert your explanations of black boxes from level 1:
-
-If you use tabular form you will only describe your black boxes with name and
-responsibility according to the following schema:
-
-[cols="1,2" options="header"]
+[options="header",cols="1,3"]
 |===
-| **Name** | **Responsibility**
-| _<black box 1>_ | _<Text>_
-| _<black box 2>_ | _<Text>_
+|Name |Responsibility
+|StaticSiteGenerator |Core engine that coordinates the generation process
+|SsgConfig |Configuration for the generator
+|GeneratorCollection |Collection of content generators
+|ProcessorCollection |Collection of HTML processors
+|generators |Implementations of different content generators
+|processors |Implementations of different HTML processors
 |===
 
+*Important Interfaces:*
 
-
-If you use a list of black box descriptions then you fill in a separate black box template for every important building block .
-Its headline is the name of the black box.
-****
-endif::arc42help[]
-
-==== <Name black box 1>
-
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you describe <black box 1>
-according the the following black box template:
-
-* Purpose/Responsibility
-* Interface(s), when they are not extracted as separate paragraphs. This interfaces may include qualities and performance characteristics.
-* (Optional) Quality-/Performance characteristics of the black box, e.g.availability, run time behavior, ....
-* (Optional) directory/file location
-* (Optional) Fulfilled requirements (if you need traceability to requirements).
-* (Optional) Open issues/problems/risks
-
-****
-endif::arc42help[]
-
-_<Purpose/Responsibility>_
-
-_<Interface(s)>_
-
-_<(Optional) Quality/Performance Characteristics>_
-
-_<(Optional) Directory/File Location>_
-
-_<(Optional) Fulfilled Requirements>_
-
-_<(optional) Open Issues/Problems/Risks>_
-
-
-
-
-==== <Name black box 2>
-
-_<black box template>_
-
-==== <Name black box n>
-
-_<black box template>_
-
-
-==== <Name interface 1>
-
-...
-
-==== <Name interface m>
-
-
+[options="header",cols="1,3"]
+|===
+|Interface |Description
+|Generator trait |Interface for creating content generators
+|Processor trait |Interface for creating HTML processors
+|GeneratorOutputSupport trait |Interface for documenting generator capabilities
+|===
 
 === Level 2
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you can specify the inner structure of (some) building blocks from level 1 as white boxes.
+==== White Box _StaticSiteGenerator_
 
-You have to decide which building blocks of your system are important enough to justify such a detailed description.
-Please prefer relevance over completeness. Specify important, surprising, risky, complex or volatile building blocks.
-Leave out normal, simple, boring or standardized parts of your system
-****
-endif::arc42help[]
+[plantuml]
+----
+@startuml
+class StaticSiteGenerator {
+  +config: SsgConfig
+  -template_env: Environment
+  +new(config: SsgConfig) -> Result
+  +generate<R, F>(switch_fn: F) -> Result
+  -render_route() -> Result
+  -wrap_html() -> Result
+  -determine_output_path() -> (PathBuf, PathBuf)
+}
 
-==== White Box _<building block 1>_
+class SsgConfig {
+  +output_dir: PathBuf
+  +template_path: Option<PathBuf>
+  +default_template: String
+  +global_metadata: HashMap
+  +route_metadata: HashMap
+  +generators: GeneratorCollection
+  +processors: ProcessorCollection
+}
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-...describes the internal structure of _building block 1_.
-****
-endif::arc42help[]
+SsgConfig "1" -- "1" StaticSiteGenerator : configures >
+@enduml
+----
 
-_<white box template>_
+*Responsibility:*
 
-==== White Box _<building block 2>_
+The StaticSiteGenerator is responsible for orchestrating the entire site generation process:
+1. Rendering each route of the Yew application to HTML
+2. Applying generators to create SEO content and other outputs
+3. Running processors to transform the HTML
+4. Writing the final output to files
 
+*Interfaces:*
 
-_<white box template>_
+* `new(config: SsgConfig)` - Creates a new generator with the given configuration
+* `generate<R, F>(switch_fn: F)` - Generates static HTML for all routes using the provided router switch function
 
-...
+==== White Box _Generator System_
 
-==== White Box _<building block m>_
+[plantuml]
+----
+@startuml
+interface Generator {
+  +name() -> &'static str
+  +generate(key, route, content, metadata) -> Result
+  +clone_box() -> Box<dyn Generator>
+  +as_any() -> &dyn Any
+}
 
+class GeneratorCollection {
+  -generators: Vec<Box<dyn Generator>>
+  +add<G: Generator>(&mut self, generator: G)
+  +try_get_output_support() -> Option<&dyn GeneratorOutputSupport>
+}
 
-_<white box template>_
+interface GeneratorOutputSupport {
+  +supported_outputs() -> Vec<&'static str>
+  +supports_output(key: &str) -> bool
+}
 
+class TitleGenerator {}
+class MetaTagGenerator {
+  +default_description: String
+  +default_keywords: Vec<String>
+}
+class OpenGraphGenerator {
+  +site_name: String
+  +default_image: String
+}
+class TwitterCardGenerator {
+  +twitter_site: Option<String>
+  +default_card_type: String
+}
+class RobotsMetaGenerator {
+  +default_robots: String
+}
 
+Generator <|.. TitleGenerator
+Generator <|.. MetaTagGenerator
+Generator <|.. OpenGraphGenerator
+Generator <|.. TwitterCardGenerator
+Generator <|.. RobotsMetaGenerator
+
+GeneratorOutputSupport <|.. TitleGenerator
+GeneratorOutputSupport <|.. MetaTagGenerator
+GeneratorOutputSupport <|.. OpenGraphGenerator
+GeneratorOutputSupport <|.. TwitterCardGenerator
+GeneratorOutputSupport <|.. RobotsMetaGenerator
+
+GeneratorCollection o-- "many" Generator : contains >
+@enduml
+----
+
+*Responsibility:*
+
+The Generator system is responsible for creating HTML content for various purposes:
+1. Title tags
+2. Meta tags
+3. Open Graph protocol tags
+4. Twitter Card tags
+5. Robots directives
+
+Each generator implements the Generator trait and optionally the GeneratorOutputSupport trait to document its capabilities.
+
+==== White Box _Processor System_
+
+[plantuml]
+----
+@startuml
+interface Processor {
+  +name() -> &'static str
+  +process(html, metadata, generator_outputs, content) -> Result
+  +clone_box() -> Box<dyn Processor>
+}
+
+class ProcessorCollection {
+  -processors: Vec<Box<dyn Processor>>
+  +add<P: Processor>(&mut self, processor: P)
+  +process_all() -> Result
+}
+
+class TemplateVariableProcessor {
+  -start_delimiter: String
+  -end_delimiter: String
+}
+
+class AttributeProcessor {
+  -prefix: String
+  -generators: Arc<Option<GeneratorCollection>>
+}
+
+enum SsgAttribute {
+  Attribute(String)
+  Content
+  Placeholder
+}
+
+Processor <|.. TemplateVariableProcessor
+Processor <|.. AttributeProcessor
+
+ProcessorCollection o-- "many" Processor : contains >
+AttributeProcessor ..> SsgAttribute : uses >
+
+@enduml
+----
+
+*Responsibility:*
+
+The Processor system is responsible for transforming HTML:
+1. TemplateVariableProcessor replaces template variables like `{{title}}`
+2. AttributeProcessor processes special data-ssg attributes for advanced templating
+
+ProcessorCollection manages the execution pipeline, running processors in sequence.
 
 === Level 3
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you can specify the inner structure of (some) building blocks from level 2 as white boxes.
+==== White Box _AttributeProcessor_
 
-When you need more detailed levels of your architecture please copy this
-part of arc42 for additional levels.
-****
-endif::arc42help[]
+[plantuml]
+----
+@startuml
+class AttributeProcessor {
+  -prefix: String
+  -generators: Arc<Option<GeneratorCollection>>
+  +new(prefix: &str, generators: Option<GeneratorCollection>) -> Self
+  +process() -> Result
+  -try_generate_output() -> Result
+}
 
-==== White Box <_building block x.1_>
+enum SsgAttribute {
+  Attribute(String)
+  Content
+  Placeholder
+  +from_str(attr: &str) -> Option<Self>
+}
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Specifies the internal structure of _building block x.1_.
-****
-endif::arc42help[]
+function "process_element()" {
+}
 
-_<white box template>_
+AttributeProcessor ..> SsgAttribute : uses >
+AttributeProcessor ..> "process_element()" : calls >
+@enduml
+----
 
+*Responsibility:*
 
-==== White Box <_building block x.2_>
+The AttributeProcessor implements advanced HTML templating through data attributes:
+1. Processes `data-ssg="key"` for content replacement
+2. Processes `data-ssg-attr="key"` for attribute value replacement
+3. Processes `data-ssg-placeholder="key"` for complete element replacement
 
-_<white box template>_
-
-
-
-==== White Box <_building block y.1_>
-
-_<white box template>_
+It uses the SsgAttribute enum to represent different types of attribute processing and the process_element function to perform the actual HTML transformation.
