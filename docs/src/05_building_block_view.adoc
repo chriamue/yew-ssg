@@ -5,7 +5,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 === Whitebox Overall System
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 package "yew-ssg" {
@@ -75,7 +75,7 @@ The yew-ssg system is structured around a core StaticSiteGenerator that coordina
 
 ==== White Box _StaticSiteGenerator_
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 class StaticSiteGenerator {
@@ -117,7 +117,7 @@ The StaticSiteGenerator is responsible for orchestrating the entire site generat
 
 ==== White Box _Generator System_
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 interface Generator {
@@ -184,7 +184,7 @@ Each generator implements the Generator trait and optionally the GeneratorOutput
 
 ==== White Box _Processor System_
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 interface Processor {
@@ -236,7 +236,7 @@ ProcessorCollection manages the execution pipeline, running processors in sequen
 
 ==== White Box _AttributeProcessor_
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 class AttributeProcessor {

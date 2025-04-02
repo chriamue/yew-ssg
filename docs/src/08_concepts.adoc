@@ -5,7 +5,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 === Domain Model
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 class "Static Site Generator" as SSG {

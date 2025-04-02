@@ -5,7 +5,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 === Quality Tree
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startmindmap
 * Quality

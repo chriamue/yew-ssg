@@ -29,22 +29,40 @@ jobs:
         with:
           version: "latest"
 
-      - name: Setup AsciiDoctor
-        uses: reitzig/actions-asciidoctor@v2.0.1
+      - name: Setup Java for PlantUML
+        uses: actions/setup-java@v3
         with:
-          version: "2.0.18"
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install AsciiDoctor with Diagram Support
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+          gem install asciidoctor-diagram
+          mkdir -p tools
+          wget -O tools/plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2023.10/plantuml-1.2023.10.jar
 
       - name: Build Documentation
         run: |
           # Create docs output directory
           mkdir -p docs_output
 
-          # Process AsciiDoc files to HTML
-          asciidoctor -o index.html -D docs_output docs/README.adoc
+          # Process AsciiDoc files to HTML with PlantUML support
+          asciidoctor -r asciidoctor-diagram -o index.html -D docs_output docs/README.adoc
+
+          # Create .nojekyll file to prevent GitHub Pages from ignoring files
+          touch docs_output/.nojekyll
 
           # Copy images directory if it exists
           if [ -d "docs/images" ]; then
             cp -r docs/images docs_output/
+          fi
+
+          # Copy generated diagram images if they exist
+          if [ -d "docs/images/plantuml" ]; then
+            mkdir -p docs_output/images
+            cp -r docs/images/plantuml docs_output/images/
           fi
 
       - name: Build and Bundle Example
@@ -63,6 +81,9 @@ jobs:
           # Copy documentation to dist/docs directory
           mkdir -p dist/docs
           cp -r ../../docs_output/* dist/docs/
+
+          # Ensure .nojekyll at the root
+          touch dist/.nojekyll
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4

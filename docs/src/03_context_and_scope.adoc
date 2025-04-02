@@ -7,7 +7,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 Yew-SSG operates within the context of modern web application development, specifically addressing the challenge of serving single-page applications (SPAs) that are also SEO-friendly and have fast initial loads.
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 actor "Developer" as dev
@@ -44,7 +44,7 @@ search --> server : indexes
 
 === Technical Context
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 node "Yew-SSG" {

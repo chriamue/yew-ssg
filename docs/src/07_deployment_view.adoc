@@ -5,7 +5,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 === Infrastructure Level 1
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 node "Development Environment" {
@@ -64,7 +64,7 @@ Yew-SSG is deployed as a Rust library that is integrated into a Yew application'
 
 ==== _Development Environment_
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 node "Rust Project" {
@@ -122,7 +122,7 @@ The development environment consists of:
 
 ==== _Web Server Deployment_
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 node "Web Server" {

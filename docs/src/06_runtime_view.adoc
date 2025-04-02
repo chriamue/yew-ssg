@@ -5,7 +5,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 === Static Site Generation Process
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 actor Developer
@@ -59,7 +59,7 @@ This scenario illustrates the complete process of generating a static site:
 
 === Template Processing Sequence
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 participant "StaticSiteGenerator" as SSG
@@ -91,7 +91,7 @@ This scenario shows how a template is processed:
 
 === Generator Execution Sequence
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startuml
 participant "StaticSiteGenerator" as SSG

@@ -29,7 +29,7 @@ ifndef::imagesdir[:imagesdir: ../images]
 
 === Risk/Debt Matrix
 
-[plantuml]
+[plantuml, format=svg]
 ----
 @startchart
 <style>
