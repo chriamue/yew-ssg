@@ -1,3 +1,4 @@
+// yew-ssg/docs/README.adoc
 // header file for arc42-template,
 // including all help texts
 //
@@ -6,10 +7,10 @@
 // configure EN settings for asciidoc
 include::src/config.adoc[]
 
-= image:arc42-logo.png[arc42] Template
-:revnumber: 8.2 EN
-:revdate: January 2023
-:revremark: (based upon AsciiDoc version)
+= image:yew-ssg-logo.png[yew-ssg] Architecture Documentation
+:revnumber: 0.1.0
+:revdate: June 2023
+:revremark: (Initial Documentation)
 // toc-title definition MUST follow document title without blank line!
 :toc-title: Table of Contents
 
@@ -29,7 +30,7 @@ ifdef::backend-html5[]
 endif::backend-html5[]
 
 
-include::src/about-arc42.adoc[]
+include::src/about-yew-ssg.adoc[]
 
 // horizontal line
 ***
@@ -96,5 +97,3 @@ include::src/11_technical_risks.adoc[]
 <<<<
 // 12. Glossary
 include::src/12_glossary.adoc[]
-
-

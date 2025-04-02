@@ -1,0 +1,31 @@
+:homepage: https://github.com/chriamue/yew-ssg
+:keywords: yew, rust, static-site-generator, wasm, seo
+
+:numbered!:
+**About yew-ssg**
+
+[role="lead"]
+yew-ssg is a static site generator for Yew applications that helps you pre-render your Yew apps for better SEO and load times.
+
+Version {revnumber}. {revremark}, {revdate}
+
+## Core Features
+
+* Pre-renders Yew applications to static HTML
+* Works with yew-router for multi-page applications
+* Customizable HTML templates with variable substitution
+* Advanced attribute-based templating system
+* Extensible generator plugin system
+* Built-in SEO generators (meta tags, Open Graph, Twitter Cards)
+* Robots meta tag support
+* Flexible processing pipeline
+
+## Benefits
+
+* **Better SEO**: Search engines can index your content properly
+* **Faster Initial Load**: Users see content immediately without waiting for JavaScript
+* **Improved UX**: Eliminates content flickering during initial load
+* **Developer Friendly**: Simple API with sensible defaults
+* **Flexible**: Adapts to different project requirements
+
+This architecture documentation follows the arc42 template for consistent, comprehensive technical documentation.
