@@ -1,100 +1,174 @@
 ifndef::imagesdir[:imagesdir: ../images]
 
 [[section-deployment-view]]
-
-
 == Deployment View
-
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Content
-The deployment view describes:
-
- 1. technical infrastructure used to execute your system, with infrastructure elements like geographical locations, environments, computers, processors, channels and net topologies as well as other infrastructure elements and
-
-2. mapping of (software) building blocks to that infrastructure elements.
-
-Often systems are executed in different environments, e.g. development environment, test environment, production environment. In such cases you should document all relevant environments.
-
-Especially document a deployment view if your software is executed as distributed system with more than one computer, processor, server or container or when you design and construct your own hardware processors and chips.
-
-From a software perspective it is sufficient to capture only those elements of an infrastructure that are needed to show a deployment of your building blocks. Hardware architects can go beyond that and describe an infrastructure to any level of detail they need to capture.
-
-.Motivation
-Software does not run without hardware.
-This underlying infrastructure can and will influence a system and/or some
-cross-cutting concepts. Therefore, there is a need to know the infrastructure.
-
-.Form
-
-Maybe a highest level deployment diagram is already contained in section 3.2. as
-technical context with your own infrastructure as ONE black box. In this section one can
-zoom into this black box using additional deployment diagrams:
-
-* UML offers deployment diagrams to express that view. Use it, probably with nested diagrams,
-when your infrastructure is more complex.
-* When your (hardware) stakeholders prefer other kinds of diagrams rather than a deployment diagram, let them use any kind that is able to show nodes and channels of the infrastructure.
-
-
-.Further Information
-
-See https://docs.arc42.org/section-7/[Deployment View] in the arc42 documentation.
-
-****
-endif::arc42help[]
 
 === Infrastructure Level 1
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Describe (usually in a combination of diagrams, tables, and text):
+[plantuml]
+----
+@startuml
+node "Development Environment" {
+  [Rust Project] as RustProj
+  [Yew Application] as YewApp
+  [Yew-SSG Library] as YewSSG
+  [SSG Binary] as SSGBin
 
-* distribution of a system to multiple locations, environments, computers, processors, .., as well as physical connections between them
-* important justifications or motivations for this deployment structure
-* quality and/or performance features of this infrastructure
-* mapping of software artifacts to elements of this infrastructure
+  RustProj --> YewApp : contains
+  RustProj --> YewSSG : depends on
+  RustProj --> SSGBin : contains
+  SSGBin --> YewSSG : uses
+  SSGBin --> YewApp : pre-renders
+}
 
-For multiple environments or alternative deployments please copy and adapt this section of arc42 for all relevant environments.
-****
-endif::arc42help[]
+node "Build System" {
+  [Cargo] as Cargo
+  [Build Scripts] as Build
 
-_**<Overview Diagram>**_
+  Cargo --> Build : runs
+}
 
-Motivation::
+node "Web Server" {
+  [Static Files] as Static
+  [Index HTML Files] as Index
+  [Asset Files] as Assets
 
-_<explanation in text form>_
+  Static --> Index : contains
+  Static --> Assets : contains
+}
 
-Quality and/or Performance Features::
+RustProj --> Cargo : built by
+SSGBin --> Static : generates
+@enduml
+----
 
-_<explanation in text form>_
+*Motivation:*
 
-Mapping of Building Blocks to Infrastructure::
-_<description of the mapping>_
+Yew-SSG is deployed as a Rust library that is integrated into a Yew application's build process. It generates static HTML files that can be deployed to any web server capable of serving static files.
 
+*Quality and/or Performance Features:*
+
+* The static site generation happens during the build process, not at runtime
+* Generated static files can be deployed to any standard web hosting solution
+* No special server requirements beyond serving static files
+* Built with Rust for performance and safety
+
+*Mapping of Building Blocks to Infrastructure:*
+
+* Yew-SSG library is imported into the Rust project
+* A binary target in the project uses Yew-SSG to generate static files
+* Generated HTML files are deployed to a web server
+* Client-side Yew application takes over after initial page load
 
 === Infrastructure Level 2
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-Here you can include the internal structure of (some) infrastructure elements from level 1.
+==== _Development Environment_
 
-Please copy the structure from level 1 for each selected element.
-****
-endif::arc42help[]
+[plantuml]
+----
+@startuml
+node "Rust Project" {
+  folder "src" {
+    [App Components]
+    [Routing]
+    [Main.rs]
+  }
 
-==== _<Infrastructure Element 1>_
+  folder "ssg" {
+    [SSG Binary]
+  }
 
-_<diagram + explanation>_
+  folder "static" {
+    [CSS]
+    [Images]
+    [JavaScript]
+  }
 
-==== _<Infrastructure Element 2>_
+  [Cargo.toml] as Cargo
 
-_<diagram + explanation>_
+  Cargo --> [App Components] : defines
+  Cargo --> [SSG Binary] : defines
+  [SSG Binary] --> [Routing] : uses
+  [Main.rs] --> [App Components] : uses
+  [Main.rs] --> [Routing] : uses
+}
 
-...
+folder "output" {
+  folder "dist" {
+    [Generated HTML]
+    [Copied Static Assets]
+  }
+}
 
-==== _<Infrastructure Element n>_
+[SSG Binary] --> [Generated HTML] : creates
+[static] --> [Copied Static Assets] : copied to
+@enduml
+----
 
-_<diagram + explanation>_
+*Explanation:*
+
+The development environment consists of:
+
+1. A Rust project with:
+   * Application components in the src directory
+   * An SSG binary in the ssg directory
+   * Static assets (CSS, images, JavaScript)
+   * Cargo.toml for dependencies and configuration
+
+2. During the build process:
+   * The SSG binary pre-renders the application to HTML
+   * Static assets are copied to the output directory
+   * The output is ready for deployment to a web server
+
+==== _Web Server Deployment_
+
+[plantuml]
+----
+@startuml
+node "Web Server" {
+  [Static File Server]
+
+  folder "document_root" {
+    [index.html] as Root
+
+    folder "about" {
+      [index.html] as About
+    }
+
+    folder "blog" {
+      [index.html] as Blog
+
+      folder "post-1" {
+        [index.html] as Post1
+      }
+    }
+
+    folder "assets" {
+      [styles.css]
+      [app.js]
+      [images]
+    }
+  }
+
+  [Static File Server] --> [document_root] : serves
+}
+
+actor "User" as User
+actor "Search Engine" as Search
+
+User --> [Static File Server] : requests
+Search --> [Static File Server] : indexes
+@enduml
+----
+
+*Explanation:*
+
+The web server deployment consists of:
+
+1. A static file server (e.g., Nginx, Apache, AWS S3, Netlify)
+2. A document root with:
+   * An index.html file for the root route
+   * Subdirectories for each route, each with an index.html file
+   * Assets directory with styles, scripts, and images
+
+3. Users and search engines access the static files, with users getting the full SPA experience after the initial page load.
