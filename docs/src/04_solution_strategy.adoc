@@ -3,32 +3,32 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-solution-strategy]]
 == Solution Strategy
 
+=== Technology Decisions
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Contents
-A short summary and explanation of the fundamental decisions and solution strategies, that shape system architecture. It includes
+* *Rust Language*: Chosen for safety, performance, and compatibility with Yew
+* *Yew Framework Integration*: Direct integration with Yew's SSR capabilities
+* *Trait-based Architecture*: Using Rust's trait system for extensibility
+* *Builder Pattern*: For clean, fluent configuration API
+* *Template Processing*: Custom processing with MiniJinja for template rendering
+* *HTML Manipulation*: Using lol_html for efficient HTML transformation
 
-* technology decisions
-* decisions about the top-level decomposition of the system, e.g. usage of an architectural pattern or design pattern
-* decisions on how to achieve key quality goals
-* relevant organizational decisions, e.g. selecting a development process or delegating certain tasks to third parties.
+=== Architectural Approach
 
-.Motivation
-These decisions form the cornerstones for your architecture. They are the foundation for many other detailed decisions or implementation rules.
+* *Separation of Concerns*: Clear separation between generators, processors, and the core SSG engine
+* *Pipeline Architecture*: Content flows through a series of processing steps
+* *Extensible Plugin System*: Trait-based system for creating custom generators and processors
+* *Sensible Defaults*: Default implementations provide immediate value while allowing customization
 
-.Form
-Keep the explanations of such key decisions short.
+=== Quality Strategy
 
-Motivate what was decided and why it was decided that way,
-based upon problem statement, quality goals and key constraints.
-Refer to details in the following sections.
+* *SEO Optimization*: Built-in generators for common SEO needs (meta tags, Open Graph, etc.)
+* *Performance*: Efficient HTML processing with minimal overhead
+* *Extensibility*: Well-defined traits for extending functionality
+* *Ease of Use*: Builder pattern and sensible defaults make common cases simple
+* *Maintainability*: Clean separation of concerns and comprehensive test coverage
 
+=== Development Strategy
 
-.Further Information
-
-See https://docs.arc42.org/section-4/[Solution Strategy] in the arc42 documentation.
-
-****
-endif::arc42help[]
+* *Test-Driven Development*: Comprehensive test suite for each component
+* *Documentation-First*: Detailed documentation with examples
+* *Community Feedback*: Iterative improvement based on real-world usage
