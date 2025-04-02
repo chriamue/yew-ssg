@@ -17,6 +17,10 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+
       - name: Install wasm-bindgen-cli
         run: cargo install wasm-bindgen-cli
 
@@ -24,6 +28,24 @@ jobs:
         uses: jetli/trunk-action@v0.5.0
         with:
           version: "latest"
+
+      - name: Setup AsciiDoctor
+        uses: reitzig/actions-asciidoctor@v2.0.1
+        with:
+          version: "2.0.18"
+
+      - name: Build Documentation
+        run: |
+          # Create docs output directory
+          mkdir -p docs_output
+
+          # Process AsciiDoc files to HTML
+          asciidoctor -o index.html -D docs_output docs/README.adoc
+
+          # Copy images directory if it exists
+          if [ -d "docs/images" ]; then
+            cp -r docs/images docs_output/
+          fi
 
       - name: Build and Bundle Example
         run: |
@@ -37,6 +59,10 @@ jobs:
 
           # Run the SSG to generate static pages
           BASE_URL=https://blog.chriamue.de/yew-ssg/ cargo run --bin ssg --features=ssg
+
+          # Copy documentation to dist/docs directory
+          mkdir -p dist/docs
+          cp -r ../../docs_output/* dist/docs/
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
