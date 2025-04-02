@@ -9,7 +9,7 @@ include::src/config.adoc[]
 
 = image:yew-ssg-logo.png[yew-ssg] Architecture Documentation
 :revnumber: 0.1.0
-:revdate: June 2023
+:revdate: April 2025
 :revremark: (Initial Documentation)
 // toc-title definition MUST follow document title without blank line!
 :toc-title: Table of Contents
