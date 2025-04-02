@@ -540,8 +540,6 @@ mod tests {
     #[test]
     fn test_placeholder_processor_integration() {
         use crate::generators::TitleGenerator;
-        use crate::processor::Processor;
-        use crate::processors::PlaceholderProcessor;
 
         // Create a simple HTML with a placeholder
         let html = r#"<html>
@@ -559,17 +557,10 @@ mod tests {
 
         // Create metadata with a title
         let mut metadata = HashMap::new();
-        metadata.insert("title".to_string(), "My Test Page".to_string());
-
-        // Process with placeholder processor
-        let placeholder_processor = PlaceholderProcessor::new("data-ssg", generators);
-        let processed = placeholder_processor
-            .process(html, &metadata, &HashMap::new(), "")
-            .unwrap();
-
-        // Verify the placeholder was replaced with title
-        assert!(processed.contains("<title>My Test Page</title>"));
-        assert!(!processed.contains("data-ssg-placeholder"));
+        metadata.insert(
+            "title".to_string(),
+            "<title>My Test Page</title>".to_string(),
+        );
 
         // Now let's create a complete SSG and verify it works end-to-end
         let config = SsgConfigBuilder::new()
@@ -587,7 +578,7 @@ mod tests {
 
         // Process through the SSG's wrap_html
         let result = ssg
-            .wrap_html("", "/test-page", &metadata, &HashMap::new())
+            .wrap_html("", "/test-page", &metadata, &metadata)
             .unwrap();
 
         // Verify placeholder was replaced

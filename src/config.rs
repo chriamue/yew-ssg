@@ -5,7 +5,7 @@ use crate::generators::{
 };
 use crate::processor::Processor;
 use crate::processor_collection::ProcessorCollection;
-use crate::processors::{AttributeProcessor, PlaceholderProcessor, TemplateVariableProcessor};
+use crate::processors::{AttributeProcessor, TemplateVariableProcessor};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -69,11 +69,6 @@ impl SsgConfig {
     /// Add default processors if none have been added
     pub fn with_default_processors(mut self) -> Self {
         if self.processors.is_empty() {
-            // Placeholder processor needs generators from the config
-            let placeholder_processor =
-                PlaceholderProcessor::new("data-ssg", self.generators.clone());
-            self.processors.add(placeholder_processor);
-
             // Template variable processor for {{var}} syntax
             let template_processor = TemplateVariableProcessor::new();
             self.processors.add(template_processor);
@@ -161,11 +156,6 @@ impl SsgConfigBuilder {
     pub fn add_processor<P: Processor + 'static>(mut self, processor: P) -> Self {
         self.config.processors.add(processor);
         self
-    }
-
-    /// Creates a placeholder processor using the currently configured generators
-    pub fn create_placeholder_processor(&self, prefix: &str) -> PlaceholderProcessor {
-        PlaceholderProcessor::new(prefix, self.config.generators.clone())
     }
 
     pub fn build(self) -> SsgConfig {
