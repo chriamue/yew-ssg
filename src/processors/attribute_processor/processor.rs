@@ -100,9 +100,40 @@ impl Processor for AttributeProcessor {
         // because lol_html has limitations with attribute selectors containing special chars
         let self_ref = self.clone();
         handlers.push(element!("*", move |el| {
-            // First, check for data-ssg attribute (like data-ssg="content")
+            // First check for data-ssg-placeholder attribute
+            let placeholder_attr = format!("{}-placeholder", prefix);
+            if let Some(key) = el.get_attribute(&placeholder_attr) {
+                // Get or generate content for placeholder
+                let generated_content = if let Some(prebuilt) = generator_outputs.get(&key) {
+                    prebuilt.clone()
+                } else if let Some(generators) = &*generators_ref {
+                    match self_ref.try_generate_output(generators, &key, route, content, metadata) {
+                        Ok(generated) => generated,
+                        Err(e) => {
+                            warn!(
+                                "Failed to generate content for placeholder key '{}': {}",
+                                key, e
+                            );
+                            format!("<!-- No generator found for placeholder key: {} -->", key)
+                        }
+                    }
+                } else {
+                    format!("<!-- No generator found for placeholder key: {} -->", key)
+                };
+
+                // Process placeholder element (completely replace it)
+                process_element(SsgAttribute::Placeholder, el, &generated_content, metadata);
+                return Ok(());
+            }
+
+            // Then, check for data-ssg attribute (like data-ssg="content")
             if let Some(key) = el.get_attribute(&prefix) {
-                // Get or generate content
+                // Get or generate content, checking in this order:
+                // 1. Generator outputs
+                // 2. Generators
+                // 3. Special case for "content"
+                // 4. Metadata
+                // 5. If none of the above, preserve original
                 let generated_content = if let Some(prebuilt) = generator_outputs.get(&key) {
                     prebuilt.clone()
                 } else if let Some(generators) = &*generators_ref {
@@ -110,15 +141,25 @@ impl Processor for AttributeProcessor {
                         Ok(generated) => generated,
                         Err(e) => {
                             warn!("Failed to generate content for key '{}': {}", key, e);
-                            String::new()
+                            // Try to get from metadata
+                            if let Some(value) = metadata.get(&key) {
+                                value.clone()
+                            } else {
+                                "{{__PRESERVE_ORIGINAL__}}".to_string()
+                            }
                         }
                     }
                 } else if key == "content" {
                     content.to_string()
+                } else if let Some(value) = metadata.get(&key) {
+                    // Get from metadata if available
+                    value.clone()
                 } else {
-                    String::new()
+                    // Preserve original if no replacement found
+                    "{{__PRESERVE_ORIGINAL__}}".to_string()
                 };
 
+                // Process element, handling the special flag if needed
                 process_element(SsgAttribute::Content, el, &generated_content, metadata);
             }
 
@@ -129,7 +170,10 @@ impl Processor for AttributeProcessor {
             let data_attrs: Vec<(String, String)> = el
                 .attributes()
                 .into_iter()
-                .filter(|attr| attr.name().starts_with(&prefix_dash))
+                .filter(|attr| {
+                    attr.name().starts_with(&prefix_dash) && attr.name() != placeholder_attr
+                    // Skip placeholder attribute as we already handled it
+                })
                 .map(|attr| (attr.name().to_string(), attr.value().to_string()))
                 .collect();
 
@@ -379,8 +423,115 @@ mod tests {
     }
 
     #[test]
+    fn test_placeholder_replacement() {
+        let mut generators = GeneratorCollection::new();
+        generators.add(MockGenerator::new("meta", vec!["description"]));
+
+        let processor = AttributeProcessor::new("data-ssg", Some(generators));
+
+        let html = r#"<!DOCTYPE html>
+        <html>
+        <head>
+            <div data-ssg-placeholder="description">Loading description...</div>
+        </head>
+        <body>
+            <h1>Test Page</h1>
+        </body>
+        </html>"#;
+
+        let mut metadata = HashMap::new();
+        metadata.insert("route".to_string(), "/test".to_string());
+
+        let result = processor
+            .process(html, &metadata, &HashMap::new(), "")
+            .unwrap();
+
+        // Verify the placeholder was replaced
+        assert!(result.contains("Generated content for key 'description' by meta"));
+
+        // Verify the placeholder element and attribute are gone
+        assert!(!result.contains("data-ssg-placeholder"));
+        assert!(!result.contains("<div>Loading description...</div>"));
+
+        // Verify the document structure is still intact
+        assert!(result.contains("<!DOCTYPE html>"));
+        assert!(result.contains("<html>"));
+        assert!(result.contains("<head>"));
+        assert!(result.contains("</head>"));
+        assert!(result.contains("<body>"));
+        assert!(result.contains("<h1>Test Page</h1>"));
+        assert!(result.contains("</body>"));
+        assert!(result.contains("</html>"));
+    }
+
+    #[test]
+    fn test_placeholder_with_pregenerated_content() {
+        let processor = AttributeProcessor::new("data-ssg", None);
+
+        let html = r#"<!DOCTYPE html>
+        <html>
+        <head>
+            <div data-ssg-placeholder="meta-tags">Original placeholder content</div>
+        </head>
+        <body>
+            <h1>Test Page</h1>
+        </body>
+        </html>"#;
+
+        let mut generator_outputs = HashMap::new();
+        generator_outputs.insert(
+            "meta-tags".to_string(),
+            r#"<meta name="description" content="Test description">
+            <meta name="keywords" content="test,keywords">"#
+                .to_string(),
+        );
+
+        let result = processor
+            .process(html, &HashMap::new(), &generator_outputs, "")
+            .unwrap();
+
+        // Verify placeholder replaced with multiple meta tags
+        assert!(result.contains(r#"<meta name="description" content="Test description">"#));
+        assert!(result.contains(r#"<meta name="keywords" content="test,keywords">"#));
+
+        // Verify original div and placeholder attribute are gone
+        assert!(!result.contains("<div"));
+        assert!(!result.contains("data-ssg-placeholder"));
+        assert!(!result.contains("Original placeholder content"));
+    }
+
+    #[test]
     fn test_with_default_handlers() {
         let processor = AttributeProcessor::new("data-ssg", None).with_default_handlers();
         assert_eq!(processor.prefix, "data-ssg");
+    }
+
+    #[test]
+    fn test_title_with_metadata_fallback() {
+        let processor = AttributeProcessor::new("data-ssg", None);
+
+        let html = r#"<!DOCTYPE html>
+        <html>
+        <head>
+            <title data-ssg="title">Default Title</title>
+        </head>
+        <body>
+            <h1>Test Page</h1>
+        </body>
+        </html>"#;
+
+        // No generator outputs, but metadata has title
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Title from Metadata".to_string());
+
+        let result = processor
+            .process(html, &metadata, &HashMap::new(), "")
+            .unwrap();
+
+        // The title should use the metadata value when available
+        assert!(
+            result.contains("<title>Title from Metadata</title>"),
+            "Title should use value from metadata when no generator output is available"
+        );
     }
 }

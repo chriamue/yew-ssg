@@ -11,6 +11,7 @@ pub fn process_element(
 ) {
     // Remove SSG attributes
     element.remove_attribute("data-ssg");
+    element.remove_attribute("data-ssg-placeholder");
 
     // Collect data-ssg-* attributes first
     let attrs_to_remove: Vec<String> = element
@@ -28,12 +29,25 @@ pub fn process_element(
     // Process based on attribute type
     match attribute {
         SsgAttribute::Content => {
-            // Replace inner content with generated content
-            element.set_inner_content(generated_content, ContentType::Html);
+            // Special flag to preserve original content
+            if generated_content == "{{__PRESERVE_ORIGINAL__}}" {
+                // Do nothing, keeping original content
+            } else if !generated_content.is_empty() {
+                // Replace inner content with generated content
+                element.set_inner_content(generated_content, ContentType::Html);
+            }
+            // If empty, we still want to replace (for cases like data-ssg="content")
+            else if element.get_attribute("data-ssg") == Some("content".to_string()) {
+                element.set_inner_content(generated_content, ContentType::Html);
+            }
         }
         SsgAttribute::Attribute(attr_name) => {
             // Set the target attribute value
             let _ = element.set_attribute(&attr_name, generated_content);
+        }
+        SsgAttribute::Placeholder => {
+            // For placeholders, completely replace the element with the generated content
+            element.replace(generated_content, ContentType::Html);
         }
     }
 }
@@ -125,5 +139,25 @@ mod tests {
 
         // Check for the title with new content
         assert!(result.contains("<title>Generated Title</title>"));
+    }
+
+    #[test]
+    fn test_process_element_placeholder() {
+        let html = r#"<div data-ssg-placeholder="meta">Original placeholder content</div>"#;
+        let result = test_rewriting(
+            html,
+            "div[data-ssg-placeholder=meta]",
+            SsgAttribute::Placeholder,
+            "<meta name=\"description\" content=\"Generated description\">",
+        );
+
+        println!("Placeholder Result: {}", result);
+
+        // Verify the result doesn't contain data-ssg-placeholder attribute
+        assert!(!result.contains("data-ssg-placeholder"));
+
+        // Check that the original element was completely replaced
+        assert!(!result.contains("<div"));
+        assert!(result.contains("<meta name=\"description\" content=\"Generated description\">"));
     }
 }

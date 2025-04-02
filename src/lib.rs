@@ -29,9 +29,7 @@ pub mod prelude {
     };
 
     // Processor implementations
-    pub use crate::processors::{
-        AttributeProcessor, PlaceholderProcessor, TemplateVariableProcessor,
-    };
+    pub use crate::processors::{AttributeProcessor, TemplateVariableProcessor};
 
     // Static site generator
     pub use crate::static_site_generator::StaticSiteGenerator;

@@ -4,6 +4,8 @@ pub enum SsgAttribute {
     Attribute(String),
     /// Represents an attribute that replaces the content of an element.
     Content,
+    /// Represents a placeholder that should be replaced with generated content entirely.
+    Placeholder,
 }
 
 impl SsgAttribute {
@@ -19,6 +21,8 @@ impl SsgAttribute {
     pub fn from_str(attr: &str) -> Option<Self> {
         if attr == "data-ssg" {
             Some(SsgAttribute::Content)
+        } else if attr == "data-ssg-placeholder" {
+            Some(SsgAttribute::Placeholder)
         } else if attr.starts_with("data-ssg-") {
             let key = attr.strip_prefix("data-ssg-").unwrap().to_string();
             Some(SsgAttribute::Attribute(key))
@@ -37,6 +41,10 @@ mod tests {
         assert_eq!(
             SsgAttribute::from_str("data-ssg"),
             Some(SsgAttribute::Content)
+        );
+        assert_eq!(
+            SsgAttribute::from_str("data-ssg-placeholder"),
+            Some(SsgAttribute::Placeholder)
         );
         assert_eq!(
             SsgAttribute::from_str("data-ssg-title"),
