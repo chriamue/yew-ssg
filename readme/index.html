@@ -1,12 +1,43 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <title>Readme</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <!-- Title with development fallback -->
+        <title>README | Yew SSG Documentation</title>
+        README | Yew SSG Documentation
+
+        <!-- Description with development fallback -->
+        <meta name="description" content="<meta name=&quot;description&quot; content=&quot;Explore the documentation and usage examples for yew-ssg static site generation.&quot;>
+" />
+
+        <!-- Keywords with development fallback -->
+        <meta name="keywords" content="<meta name=&quot;keywords&quot; content=&quot;yew, rust, ssg, webdev, spa, seo&quot;>
+" />
+
+        <!-- Placeholder elements for SEO content -->
+        <meta name="description" content="Explore the documentation and usage examples for yew-ssg static site generation.">
+<meta name="keywords" content="yew, rust, ssg, webdev, spa, seo">
+<link rel="canonical" href="https://blog.chriamue.de/yew-ssg/readme">
+
+        <meta property="og:type" content="website">
+<meta property="og:title" content="README | Yew SSG Documentation">
+<meta property="og:description" content="Explore the documentation and usage examples for yew-ssg static site generation.">
+<meta property="og:url" content="https://blog.chriamue.de/yew-ssg/readme">
+<meta property="og:image" content="">
+<meta property="og:site_name" content="Yew SSG Example">
+
+        <!-- No generator found for placeholder key: twitter_card -->
+
+        <!-- No generator found for placeholder key: robots_meta -->
+
+        <!-- Development assets (these will work with trunk serve) -->
         <link rel="stylesheet" href="/yew-ssg/style-c0d8af38ace01a21.css" integrity="sha384-/gWhg6HpZi1yZIKMLKDem5NIZ9H3noB6ghwRTD6rGifuDWV1QMFTPLJfAQpoyB0N"/>
         
 <script type="module">
-import init, * as bindings from '/yew-ssg/about-page-f9df69298c9615e8.js';
-const wasm = await init({ module_or_path: '/yew-ssg/about-page-f9df69298c9615e8_bg.wasm' });
+import init, * as bindings from '/yew-ssg/about-page-87666c1fc1ee2c25.js';
+const wasm = await init({ module_or_path: '/yew-ssg/about-page-87666c1fc1ee2c25_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -15,17 +46,21 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-    <link rel="modulepreload" href="/yew-ssg/about-page-f9df69298c9615e8.js" crossorigin="anonymous" integrity="sha384-tFEXHR3MQJwA3vOmkIGhvSDo5BuO8VjyoNfdgC6McnsgG61tvlkvvBTkLREe1nP2"><link rel="preload" href="/yew-ssg/about-page-f9df69298c9615e8_bg.wasm" crossorigin="anonymous" integrity="sha384-8tOBv/q3htl757ktKQhGoTLfsrM8tSPbu8ZffHyn6w742cCVuLvfUvptZKuP/kQ7" as="fetch" type="application/wasm"></head>
+    <link rel="modulepreload" href="/yew-ssg/about-page-87666c1fc1ee2c25.js" crossorigin="anonymous" integrity="sha384-tFEXHR3MQJwA3vOmkIGhvSDo5BuO8VjyoNfdgC6McnsgG61tvlkvvBTkLREe1nP2"><link rel="preload" href="/yew-ssg/about-page-87666c1fc1ee2c25_bg.wasm" crossorigin="anonymous" integrity="sha384-CBLyRP23x3pSd4C9CpD3S/LKkbY8Lz8tXVShebVUMnVQ9bdt1bdXPwxdAzUJ4AfP" as="fetch" type="application/wasm"></head>
     <body>
-        <!--<[yew_ssg::static_site_generator::StaticSiteGenerator::render_route::{{closure}}::RouteRendererComponent<about_page::route::Route>]>--><!--<[about_page::readme::ReadmePage]>--><div class="readme-container"><div class="markdown-body"><!--<#>--><h1>yew-ssg</h1>
+        <!-- Default content container - will be populated by Trunk or SSG -->
+        <div id="app"><!--<[yew_ssg::static_site_generator::StaticSiteGenerator::render_route::{{closure}}::RouteRenderer<about_page::route::Route>]>--><!--<[about_page::readme::ReadmePage]>--><div class="readme-container"><div class="markdown-body"><!--<#>--><h1>yew-ssg</h1>
 <p>A static site generator for Yew applications that helps you pre-render your Yew apps for better SEO and load times.</p>
 <h2>Features</h2>
 <ul>
 <li>🚀 Pre-renders Yew applications to static HTML</li>
 <li>🔄 Works with yew-router for multi-page applications</li>
-<li>📝 Customizable HTML templates</li>
-<li>🧩 Plugin system for extensibility</li>
-<li>🔍 SEO-friendly output with metadata support</li>
+<li>📝 Customizable HTML templates with variable substitution</li>
+<li>🎯 Advanced attribute-based templating system</li>
+<li>🧩 Extensible generator plugin system</li>
+<li>🔍 Built-in SEO generators (meta tags, Open Graph, Twitter Cards)</li>
+<li>🤖 Robots meta tag support</li>
+<li>🔀 Flexible processing pipeline</li>
 </ul>
 <h2>Installation</h2>
 <p>Add <code>yew-ssg</code> to your <code>Cargo.toml</code>:</p>
@@ -49,31 +84,27 @@ ssg = [&quot;yew/ssr&quot;, &quot;yew-ssg&quot;]
 <p>Example SSG binary:</p>
 <pre><code class="language-rust">use my_app::route::Route;
 use my_app::switch_route::switch_route;
-use std::fs;
-use yew_ssg::StaticSiteGenerator;
+use yew_ssg::prelude::*;
+use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
-    // Load template or use default
-    let template = fs::read_to_string(&quot;dist/index.html&quot;)
-        .unwrap_or_else(|_| {
-            println!(&quot;Using default template&quot;);
-            r#&quot;&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-    &lt;head&gt;
-        &lt;meta charset=&quot;utf-8&quot;&gt;
-        &lt;title&gt;{{ title }}&lt;/title&gt;
-        &lt;link rel=&quot;stylesheet&quot; href=&quot;/styles.css&quot;&gt;
-        &lt;script defer src=&quot;/app.js&quot;&gt;&lt;/script&gt;
-    &lt;/head&gt;
-    &lt;body&gt;
-        &lt;div id=&quot;app&quot;&gt;{{ content }}&lt;/div&gt;
-    &lt;/body&gt;
-&lt;/html&gt;&quot;#.to_string()
-        });
+    // Configure the SSG
+    let config = SsgConfigBuilder::new()
+        .output_dir(&quot;dist&quot;)
+        // Add built-in generators
+        .add_generator(MetaTagGenerator {
+            default_description: &quot;My site description&quot;.to_string(),
+            default_keywords: vec![&quot;yew&quot;.to_string(), &quot;rust&quot;.to_string()],
+        })
+        .add_generator(OpenGraphGenerator {
+            site_name: &quot;My Site&quot;.to_string(),
+            default_image: &quot;/images/default.jpg&quot;.to_string(),
+        })
+        .build();
 
     // Initialize the generator
-    let generator = StaticSiteGenerator::with_template(&quot;dist&quot;, &amp;template)
+    let generator = StaticSiteGenerator::new(config)
         .expect(&quot;Failed to create generator&quot;);
 
     // Generate static files
@@ -83,70 +114,167 @@ async fn main() {
     println!(&quot;✅ Static site generated successfully!&quot;);
 }
 </code></pre>
-<h2>Advanced Usage</h2>
-<h3>Custom Templates</h3>
-<p>You can provide a custom HTML template with placeholders:</p>
-<ul>
-<li><code>{{ content }}</code> - The rendered Yew content</li>
-<li><code>{{ title }}</code> - Page title (from route)</li>
-<li><code>{{ description }}</code> - Page description</li>
-<li><code>{{ path }}</code> - Route path</li>
-</ul>
-<h3>Metadata Support</h3>
-<p>Using the <code>SsgConfigBuilder</code>, you can add global and per-route metadata:</p>
+<h2>Template System</h2>
+<h3>Basic Template Variables</h3>
+<p>Use double curly braces for variable substitution:</p>
+<pre><code class="language-html">&lt;title&gt;{{ title }}&lt;/title&gt;
+&lt;meta name=&quot;description&quot; content=&quot;{{ description }}&quot;&gt;
+</code></pre>
+<h3>Attribute-Based Templating</h3>
+<p>The attribute processor provides three powerful ways to template your HTML:</p>
+<ol>
+<li><code>data-ssg</code>: Content replacement</li>
+<li><code>data-ssg-*</code>: Attribute value replacement</li>
+<li><code>data-ssg-placeholder</code>: Complete element replacement</li>
+</ol>
+<h4>Content Replacement with data-ssg</h4>
+<p>Replace element content with generated or metadata values:</p>
+<pre><code class="language-html">&lt;!-- Replaces content with generated title or metadata title --&gt;
+&lt;title data-ssg=&quot;title&quot;&gt;Default Title&lt;/title&gt;
+
+&lt;!-- Special case for main content --&gt;
+&lt;div data-ssg=&quot;content&quot;&gt;Loading...&lt;/div&gt;
+
+&lt;!-- Uses metadata value with fallback to default --&gt;
+&lt;h1 data-ssg=&quot;page_heading&quot;&gt;Default Heading&lt;/h1&gt;
+</code></pre>
+<p>The processor looks for content in this order:</p>
+<ol>
+<li>Generated content from generators</li>
+<li>Metadata values</li>
+<li>If no replacement is found, the original content is preserved</li>
+</ol>
+<h4>Attribute Replacement with data-ssg-*</h4>
+<p>Update specific attributes with generated or metadata values:</p>
+<pre><code class="language-html">&lt;!-- Update the content attribute --&gt;
+&lt;meta name=&quot;description&quot;
+      data-ssg-content=&quot;description&quot;
+      content=&quot;Default description&quot;&gt;
+
+&lt;!-- Update the href attribute --&gt;
+&lt;link rel=&quot;canonical&quot;
+      data-ssg-href=&quot;canonical_url&quot;
+      href=&quot;https://example.com&quot;&gt;
+
+&lt;!-- Multiple attributes on one element --&gt;
+&lt;meta data-ssg-content=&quot;meta-content&quot;
+      data-ssg-name=&quot;meta-name&quot;
+      content=&quot;default-content&quot;
+      name=&quot;default-name&quot;&gt;
+</code></pre>
+<h4>Complete Element Replacement with data-ssg-placeholder</h4>
+<p>Replace the entire element with generated content:</p>
+<pre><code class="language-html">&lt;!-- Meta tags will be inserted here, replacing the entire div --&gt;
+&lt;div data-ssg-placeholder=&quot;meta_tags&quot;&gt;Loading meta tags...&lt;/div&gt;
+
+&lt;!-- Open Graph tags will be inserted here --&gt;
+&lt;div data-ssg-placeholder=&quot;open_graph&quot;&gt;Loading Open Graph tags...&lt;/div&gt;
+
+&lt;!-- Twitter Card tags will be inserted here --&gt;
+&lt;div data-ssg-placeholder=&quot;twitter_card&quot;&gt;Loading Twitter Card tags...&lt;/div&gt;
+</code></pre>
+<p>Placeholders can insert any HTML, including multiple elements, which makes them perfect for injecting blocks of meta tags or other complex structures.</p>
+<h3>Metadata Configuration</h3>
+<p>Add global and route-specific metadata:</p>
 <pre><code class="language-rust">let config = SsgConfigBuilder::new()
     .output_dir(&quot;dist&quot;)
     .global_metadata(HashMap::from([
         (&quot;site_name&quot;.to_string(), &quot;My Awesome Site&quot;.to_string()),
+        (&quot;author&quot;.to_string(), &quot;Jane Doe&quot;.to_string()),
     ]))
     .route_metadata(&quot;/about&quot;, HashMap::from([
         (&quot;title&quot;.to_string(), &quot;About Us&quot;.to_string()),
         (&quot;description&quot;.to_string(), &quot;Learn about our company&quot;.to_string()),
+        (&quot;canonical_url&quot;.to_string(), &quot;https://example.com/about&quot;.to_string()),
     ]))
     .build();
 </code></pre>
-<h3>Generator Plugins</h3>
-<p>Implement custom generators to extend functionality:</p>
+<h3>Built-in Generators</h3>
+<p>yew-ssg includes several built-in generators:</p>
+<ul>
+<li><code>MetaTagGenerator</code>: Basic meta tags</li>
+<li><code>OpenGraphGenerator</code>: Open Graph protocol tags</li>
+<li><code>TwitterCardGenerator</code>: Twitter Card meta tags</li>
+<li><code>RobotsMetaGenerator</code>: Robots meta tag</li>
+<li><code>TitleGenerator</code>: HTML title tag</li>
+</ul>
+<p>Example configuration:</p>
+<pre><code class="language-rust">let config = SsgConfigBuilder::new()
+    .add_generator(MetaTagGenerator {
+        default_description: &quot;Site description&quot;.to_string(),
+        default_keywords: vec![&quot;rust&quot;.to_string(), &quot;yew&quot;.to_string()],
+    })
+    .add_generator(OpenGraphGenerator {
+        site_name: &quot;My Site&quot;.to_string(),
+        default_image: &quot;/images/og-default.jpg&quot;.to_string(),
+    })
+    .add_generator(TwitterCardGenerator {
+        twitter_site: Some(&quot;@mysite&quot;.to_string()),
+        default_card_type: &quot;summary_large_image&quot;.to_string(),
+    })
+    .build();
+</code></pre>
+<h3>Generator Output Priority</h3>
+<p>When multiple sources can provide content for a template variable or attribute:</p>
+<ol>
+<li>Generator outputs have highest priority</li>
+<li>Generator-computed values come next</li>
+<li>Metadata values are used as fallback</li>
+<li>Original content is preserved if no replacement is found</li>
+</ol>
+<p>This allows flexibility in combining different content sources while maintaining a clear precedence order.</p>
+<h3>Custom Generators</h3>
+<p>Implement your own generators:</p>
 <pre><code class="language-rust">#[derive(Debug, Clone)]
-pub struct MyCustomGenerator;
+pub struct CustomGenerator;
 
-#[async_trait]
-impl Generator for MyCustomGenerator {
+impl Generator for CustomGenerator {
     fn name(&amp;self) -&gt; &amp;'static str {
-        &quot;custom&quot;
+        &quot;custom_generator&quot;
     }
 
-    async fn generate(
+    fn generate(
         &amp;self,
+        key: &amp;str,
         route: &amp;str,
         content: &amp;str,
         metadata: &amp;HashMap&lt;String, String&gt;,
     ) -&gt; Result&lt;String, Box&lt;dyn Error&gt;&gt; {
-        // Custom generation logic
-        Ok(format!(&quot;&lt;custom&gt;{}&lt;/custom&gt;&quot;, metadata.get(&quot;custom&quot;).unwrap_or(&amp;String::new())))
+        Ok(format!(&quot;&lt;custom-element&gt;{}&lt;/custom-element&gt;&quot;,
+                  metadata.get(&quot;custom&quot;).unwrap_or(&amp;String::new())))
     }
 
-    fn box_clone(&amp;self) -&gt; Box&lt;dyn Generator + Send + Sync&gt; {
+    fn supports_output(&amp;self, key: &amp;str) -&gt; bool {
+        key == &quot;custom_element&quot;
+    }
+
+    fn clone_box(&amp;self) -&gt; Box&lt;dyn Generator&gt; {
         Box::new(self.clone())
     }
-}
 
-// Add to config
-let config = SsgConfigBuilder::new()
-    .add_generator(MyCustomGenerator)
-    .build();
+    fn as_any(&amp;self) -&gt; &amp;dyn Any {
+        self
+    }
+}
 </code></pre>
+<h2>Processing Pipeline</h2>
+<p>The yew-ssg processing pipeline consists of:</p>
+<ol>
+<li><strong>Content generation</strong>: Pre-renders Yew components to HTML</li>
+<li><strong>Template processing</strong>: Applies HTML templates with variables</li>
+<li><strong>Attribute processing</strong>: Processes special data-ssg attributes</li>
+<li><strong>Output generation</strong>: Writes files to the output directory</li>
+</ol>
+<p>Each stage can be customized or extended as needed.</p>
 <h2>Example Projects</h2>
 <p>Check out the examples directory for complete project examples:</p>
 <ul>
-<li><code>examples/about-page</code>: Simple multi-page site with home and about pages</li>
-<li><code>examples/blog</code>: Blog with markdown content</li>
-<li><code>examples/portfolio</code>: Portfolio site with dynamic routing</li>
+<li><code>examples/about-page</code>: Basic example</li>
 </ul>
 <h2>Contributing</h2>
-<p>Contributions welcome! Please feel free to submit a Pull Request.</p>
+<p>Contributions are welcome! Please feel free to submit a Pull Request.</p>
 <h2>License</h2>
 <p>This project is licensed under the MIT License - see the LICENSE file for details.</p>
-<!--</#>--></div></div><!--</[about_page::readme::ReadmePage]>--><!--</[yew_ssg::static_site_generator::StaticSiteGenerator::render_route::{{closure}}::RouteRendererComponent<about_page::route::Route>]>-->
+<!--</#>--></div></div><!--</[about_page::readme::ReadmePage]>--><!--</[yew_ssg::static_site_generator::StaticSiteGenerator::render_route::{{closure}}::RouteRenderer<about_page::route::Route>]>--></div>
     </body>
 </html>
