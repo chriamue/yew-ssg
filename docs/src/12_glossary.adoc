@@ -3,42 +3,61 @@ ifndef::imagesdir[:imagesdir: ../images]
 [[section-glossary]]
 == Glossary
 
-ifdef::arc42help[]
-[role="arc42help"]
-****
-.Contents
-The most important domain and technical terms that your stakeholders use when discussing the system.
-
-You can also see the glossary as source for translations if you work in multi-language teams.
-
-.Motivation
-You should clearly define your terms, so that all stakeholders
-
-* have an identical understanding of these terms
-* do not use synonyms and homonyms
-
-
-.Form
-
-A table with columns <Term> and <Definition>.
-
-Potentially more columns in case you need translations.
-
-
-.Further Information
-
-See https://docs.arc42.org/section-12/[Glossary] in the arc42 documentation.
-
-****
-endif::arc42help[]
-
-[cols="e,2e" options="header"]
+[cols="1,4" options="header"]
 |===
 |Term |Definition
 
-|<Term-1>
-|<definition-1>
+|SSG
+|Static Site Generator - A tool that generates static HTML files from source content, templates, and data.
 
-|<Term-2>
-|<definition-2>
+|SEO
+|Search Engine Optimization - The practice of increasing the quantity and quality of traffic to a website through organic search engine results.
+
+|SPA
+|Single Page Application - A web application that loads a single HTML page and dynamically updates content as the user interacts with the app.
+
+|SSR
+|Server-Side Rendering - The process of rendering a normally client-side-only web application on the server and then sending the fully rendered HTML to the client.
+
+|Yew
+|A Rust framework for building web applications with WebAssembly, inspired by React and Elm.
+
+|WebAssembly (Wasm)
+|A binary instruction format for a stack-based virtual machine, designed as a portable target for compilation of high-level languages like Rust.
+
+|Generator
+|In yew-ssg, a component that produces HTML content for specific purposes such as meta tags, title, etc.
+
+|Processor
+|In yew-ssg, a component that transforms HTML by applying various operations such as variable substitution or attribute processing.
+
+|Template
+|An HTML document with placeholders that will be replaced with actual content during the generation process.
+
+|Meta Tags
+|HTML tags that provide metadata about a webpage, primarily used by search engines and social media platforms.
+
+|Open Graph
+|A protocol that enables any web page to become a rich object in a social graph, used by Facebook and other platforms for rich link previews.
+
+|Twitter Cards
+|Meta tags that add rich media to tweets when links are shared on Twitter.
+
+|Rehydration
+|The process where a client-side JavaScript application takes over a server-rendered HTML page, adding interactivity.
+
+|Route
+|A path in a web application that corresponds to a specific view or page.
+
+|Attribute-based Templating
+|A templating approach that uses HTML attributes (like data-ssg) to mark elements for processing or replacement.
+
+|Metadata
+|Data about the content, such as title, description, keywords, used for SEO and other purposes.
+
+|Builder Pattern
+|A design pattern that provides a fluent interface for constructing complex objects step by step.
+
+|Trait
+|In Rust, a collection of methods defined for an unknown type, similar to interfaces in other languages.
 |===
