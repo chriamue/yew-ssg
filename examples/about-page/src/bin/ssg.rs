@@ -7,11 +7,8 @@ use std::env;
 use std::error::Error;
 use strum::IntoEnumIterator;
 use yew_router::Routable;
-use yew_ssg::generators::{
-    MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator, TwitterCardGenerator,
-};
+use yew_ssg::generators::{MetaTagGenerator, OpenGraphGenerator};
 use yew_ssg::prelude::*;
-use yew_ssg::processors::PlaceholderProcessor;
 
 // Environment variable names
 const ENV_BASE_URL: &str = "BASE_URL";
