@@ -1,3 +1,4 @@
+use crate::utils::combine_with_base_url;
 use std::fmt::Debug;
 use yew::prelude::*;
 use yew_router::Routable;
@@ -35,23 +36,14 @@ pub fn static_link<R>(props: &StaticLinkProps<R>) -> Html
 where
     R: Routable + PartialEq + Clone + Debug + 'static,
 {
-    // Get the path from the route
     let path = props.to.to_path();
-
-    // If disabled, return a span
-    if props.disabled {
-        return html! {
-            <span class={props.classes.clone()}>
-                { props.children.clone() }
-            </span>
-        };
-    }
+    let href = combine_with_base_url(&path);
 
     // In SSG mode, render a regular <a> tag
     // In browser, this will be hydrated with client-side navigation
     html! {
         <a
-            href={path}
+            href={href}
             class={props.classes.clone()}
             ref={props.anchor_ref.clone()}
             target={props.target.clone()}

@@ -4,6 +4,7 @@ pub use yew_router_macro::Routable;
 mod static_link;
 mod static_router;
 mod static_switch;
+pub mod utils;
 
 pub use static_link::StaticLink;
 pub use static_router::StaticRouter;
