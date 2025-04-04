@@ -15,10 +15,10 @@ required-features = ["ssg"]
 
 [dependencies]
 yew = { version = "0.21", features = ["csr"] }
-yew-router = "0.18"
 strum.workspace = true
 strum_macros = "0.26.3"
 yew-ssg = { workspace = true, optional = true }
+yew_router = { workspace = true }
 tokio = { version = "1.0", features = ["full"], optional = true }
 markdown = "1.0.0-alpha.23"
 log.workspace = true

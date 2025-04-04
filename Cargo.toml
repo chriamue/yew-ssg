@@ -1,5 +1,6 @@
 [workspace]
 members = ["yew-ssg", "examples/about-page", "yew-ssg-router"]
+resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
@@ -10,6 +11,7 @@ repository = "https://github.com/chriamue/yew-ssg"
 [workspace.dependencies]
 yew = { version = "0.21", features = ["ssr"] }
 yew-router = "0.18"
+yew-router-macro = "0.18"
 async-trait = "0.1"
 log = "0.4"
 lol_html = "2.2.0"
@@ -19,3 +21,5 @@ strum_macros = "0.26.3"
 
 # Internal crates
 yew-ssg = { path = "yew-ssg" }
+yew-ssg-router = { path = "yew-ssg-router" }
+yew_router = { path = "yew-ssg-router", package = "yew-ssg-router" }
