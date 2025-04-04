@@ -1,0 +1,17 @@
+[package]
+name = "yew-ssg-router"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+proc-macro = false
+
+[dependencies]
+yew-router = { workspace = true }
+yew-router-macro = { workspace = true }
+
+[features]
+default = []
+ssg = []

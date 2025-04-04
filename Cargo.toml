@@ -1,5 +1,5 @@
 [workspace]
-members = ["yew-ssg", "examples/about-page"]
+members = ["yew-ssg", "examples/about-page", "yew-ssg-router"]
 
 [workspace.package]
 version = "0.1.0"
