@@ -5,10 +5,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
-[lib]
-proc-macro = false
-
 [dependencies]
+log = { workspace = true }
+yew = { workspace = true }
 yew-router = { workspace = true }
 yew-router-macro = { workspace = true }
 
