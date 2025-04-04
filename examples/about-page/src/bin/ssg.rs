@@ -1,5 +1,5 @@
+use about_page::app::App;
 use about_page::route::Route;
-use about_page::switch_route::switch_route;
 use env_logger::{Builder, Env};
 use log::{error, info};
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use std::error::Error;
 use strum::IntoEnumIterator;
 use yew_router::Routable;
 use yew_ssg::generators::{MetaTagGenerator, OpenGraphGenerator};
-use yew_ssg::prelude::*;
+use yew_ssg::{SsgConfigBuilder, StaticSiteGenerator};
 
 // Environment variable names
 const ENV_BASE_URL: &str = "BASE_URL";
@@ -62,12 +62,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     builder = add_processors(builder);
 
     // --- Build and Run the Generator ---
-    let generator = StaticSiteGenerator::new(builder.build())?;
+    let ssg_config = builder.build();
+    let generator = StaticSiteGenerator::new(ssg_config.clone())?;
 
     info!("🚀 Starting static site generation...");
 
-    // Generate the static site
-    generator.generate::<Route, _>(switch_route).await?;
+    // 5. Generate the static site
+    generator.generate::<Route, App>().await?;
 
     // Output success information
     print_success_info(&generator);

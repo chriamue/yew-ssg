@@ -28,4 +28,4 @@ regex = "1.10.2"
 
 [features]
 default = []
-ssg = ["yew/ssr", "yew-ssg", "tokio", "env_logger"]
+ssg = ["yew/ssr", "yew-ssg", "yew_router/ssg", "tokio", "env_logger"]
