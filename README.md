@@ -35,6 +35,46 @@ yew-ssg = { optional = true }
 ssg = ["yew/ssr", "yew-ssg"]
 ```
 
+### Router Integration
+
+yew-ssg includes its own router implementation (`yew-ssg-router`) that's optimized for static site generation. To use it:
+
+```toml
+[dependencies]
+# Use yew-ssg-router from the repository
+yew_router = { git = "https://github.com/chriamue/yew-ssg", package = "yew-ssg-router" }
+
+# Enable SSG features in your project
+[features]
+ssg = ["yew/ssr", "yew-ssg", "yew_router/ssg"]
+```
+
+The router provides SSG-compatible versions of the standard router components:
+- `BrowserRouter` - For client-side routing
+- `Link` - For navigation links
+- `Switch` - For route matching and rendering
+
+During development, these components work like normal client-side routing components. During static site generation, they automatically switch to their static counterparts when the `ssg` feature is enabled.
+
+Your application code remains the same - just use the router components as you normally would:
+
+```rust
+use yew::prelude::*;
+use yew_router::prelude::*;
+
+#[function_component(App)]
+pub fn app() -> Html {
+    html! {
+        <BrowserRouter>
+            <Link<Route> to={Route::Home}>{"Home"}</Link<Route>>
+            <Switch<Route> render={switch_route} />
+        </BrowserRouter>
+    }
+}
+```
+
+The `yew-ssg-router` package handles all the complexity of static site generation behind the scenes, ensuring your routes work both during development and in the generated static output.
+
 ## Quick Start
 
 1. Create a standard Yew application with routing
