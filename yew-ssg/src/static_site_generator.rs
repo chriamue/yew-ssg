@@ -6,7 +6,6 @@ use std::error::Error;
 use std::fmt::Debug;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use strum::IntoEnumIterator;
 use yew::prelude::*;
 use yew::ServerRenderer;
@@ -36,17 +35,7 @@ pub struct StaticSiteGenerator {
     /// Configuration for the generator.
     pub config: SsgConfig,
     /// Template environment.
-    template_env: Environment<'static>,
-}
-
-/// Wrapper for switch function to enable PartialEq for Yew components.
-#[derive(Clone)]
-struct SwitchFn<R: Routable + Clone + 'static>(Arc<dyn Fn(R) -> Html + Send + Sync + 'static>);
-
-impl<R: Routable + Clone + 'static> PartialEq for SwitchFn<R> {
-    fn eq(&self, _other: &Self) -> bool {
-        true // All switch functions considered equal
-    }
+    pub template_env: Environment<'static>,
 }
 
 impl StaticSiteGenerator {
@@ -93,25 +82,30 @@ impl StaticSiteGenerator {
     }
 
     /// Generate static HTML files for all routes.
-    pub async fn generate<R, F>(&self, switch_fn: F) -> Result<(), Box<dyn Error>>
+    pub async fn generate<R, C>(&self) -> Result<(), Box<dyn Error>>
     where
         R: Routable + IntoEnumIterator + Clone + PartialEq + Debug + Send + 'static,
-        F: Fn(R) -> Html + Clone + Send + Sync + 'static,
+        C: BaseComponent<Properties = ()> + 'static,
     {
         fs::create_dir_all(&self.config.output_dir)?;
-        let switch_fn = SwitchFn(Arc::new(switch_fn));
 
         for route in R::iter() {
             let route_path = route.to_path();
             info!("Generating route: {}", route_path);
 
-            // 1. Render the Yew component to HTML
-            let content = self.render_route(&route, switch_fn.clone()).await?;
+            // 1. Set the YEW_SSG_CURRENT_PATH env var
+            std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
 
-            // 2. Get metadata for the route
+            // 2. Render the root component
+            let content = self.render_base_component::<C>().await?;
+
+            // 3. Clear the YEW_SSG_CURRENT_PATH env var
+            std::env::remove_var("YEW_SSG_CURRENT_PATH");
+
+            // 4. Get metadata for the route
             let metadata = self.config.get_metadata_for_route(&route_path);
 
-            // 3. Generate outputs from all generators
+            // 5. Generate outputs from all generators
             let mut generator_outputs = HashMap::new();
 
             for generator in &self.config.generators.generators {
@@ -141,7 +135,7 @@ impl StaticSiteGenerator {
                 }
             }
 
-            // 4. Run processors on the content
+            // 6. Run processors on the content
             let processed_content = self.config.processors.process_all(
                 &content,
                 &metadata,
@@ -149,7 +143,7 @@ impl StaticSiteGenerator {
                 &content,
             )?;
 
-            // 5. Create the final HTML
+            // 7. Create the final HTML
             let html = self.wrap_html(
                 &processed_content,
                 &route_path,
@@ -157,7 +151,7 @@ impl StaticSiteGenerator {
                 &generator_outputs,
             )?;
 
-            // 6. Write to output file
+            // 8. Write to output file
             let (dir_path, file_path) = self.determine_output_path(&route_path);
             fs::create_dir_all(&dir_path)?;
             fs::write(&file_path, html)?;
@@ -167,8 +161,17 @@ impl StaticSiteGenerator {
         Ok(())
     }
 
+    /// Render the root component to HTML using server-side rendering.
+    async fn render_base_component<C>(&self) -> Result<String, Box<dyn Error>>
+    where
+        C: BaseComponent<Properties = ()> + 'static,
+    {
+        let renderer = ServerRenderer::<C>::new();
+        Ok(renderer.render().await)
+    }
+
     /// Determine output directory and file path for a route.
-    fn determine_output_path(&self, route_path: &str) -> (PathBuf, PathBuf) {
+    pub fn determine_output_path(&self, route_path: &str) -> (PathBuf, PathBuf) {
         if route_path == "/" {
             (
                 self.config.output_dir.clone(),
@@ -181,42 +184,8 @@ impl StaticSiteGenerator {
         }
     }
 
-    /// Render a Yew component to HTML using server-side rendering.
-    async fn render_route<R>(
-        &self,
-        route: &R,
-        switch_fn: SwitchFn<R>,
-    ) -> Result<String, Box<dyn Error>>
-    where
-        R: Routable + Clone + PartialEq + Send + 'static,
-    {
-        #[derive(Properties, PartialEq)]
-        struct RouteRendererProps<R>
-        where
-            R: Routable + Clone + PartialEq + Send + 'static,
-        {
-            route: R,
-            switch_fn: SwitchFn<R>,
-        }
-
-        #[function_component]
-        fn RouteRenderer<R>(props: &RouteRendererProps<R>) -> Html
-        where
-            R: Routable + Clone + PartialEq + Send + 'static,
-        {
-            (props.switch_fn.0)(props.route.clone())
-        }
-
-        let props = RouteRendererProps {
-            route: route.clone(),
-            switch_fn,
-        };
-        let renderer = ServerRenderer::<RouteRenderer<R>>::with_props(move || props);
-        Ok(renderer.render().await)
-    }
-
     /// Create the final HTML by combining rendered content, metadata, and generator outputs.
-    fn wrap_html(
+    pub fn wrap_html(
         &self,
         content: &str,
         path: &str,
@@ -282,10 +251,12 @@ impl StaticSiteGenerator {
     }
 }
 
+// Add to the bottom of yew-ssg/src/static_site_generator.rs
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::SsgConfigBuilder;
+    use std::collections::HashMap;
 
     #[test]
     fn test_wrap_html_with_basic_context_and_metadata() {
