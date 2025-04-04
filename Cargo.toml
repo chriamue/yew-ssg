@@ -1,22 +1,21 @@
-[package]
-name = "yew-ssg"
+[workspace]
+members = ["yew-ssg", "examples/about-page"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
-description = "Static site generator for Yew applications"
 license = "MIT"
 repository = "https://github.com/chriamue/yew-ssg"
-readme = "README.md"
-keywords = ["yew", "ssg", "static-site-generator", "wasm", "seo"]
-categories = ["web-programming", "wasm"]
 
-[dependencies]
+[workspace.dependencies]
+yew = { version = "0.21", features = ["ssr"] }
+yew-router = "0.18"
 async-trait = "0.1"
 log = "0.4"
 lol_html = "2.2.0"
 minijinja = "2.8.0"
 strum = "0.26.3"
-yew = { version = "0.21", features = ["ssr"] }
-yew-router = "0.18"
-regex = "1.8"
-scraper = "0.23.1"
-html5ever = "0.30.0"
+strum_macros = "0.26.3"
+
+# Internal crates
+yew-ssg = { path = "yew-ssg" }

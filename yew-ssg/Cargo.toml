@@ -1,0 +1,19 @@
+[package]
+name = "yew-ssg"
+version.workspace = true
+edition.workspace = true
+description = "Static site generator for Yew applications"
+license.workspace = true
+repository.workspace = true
+readme = "../README.md"
+keywords = ["yew", "ssg", "static-site-generator", "wasm", "seo"]
+categories = ["web-programming", "wasm"]
+
+[dependencies]
+async-trait.workspace = true
+log.workspace = true
+lol_html.workspace = true
+minijinja.workspace = true
+strum.workspace = true
+yew = { workspace = true, features = ["ssr"] }
+yew-router = { workspace = true }

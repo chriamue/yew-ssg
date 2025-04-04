@@ -1,7 +1,8 @@
 [package]
 name = "about-page"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+description = "Example about page using yew-ssg"
 
 [[bin]]
 name = "about-page"
@@ -15,12 +16,12 @@ required-features = ["ssg"]
 [dependencies]
 yew = { version = "0.21", features = ["csr"] }
 yew-router = "0.18"
-strum = "0.26.3"
+strum.workspace = true
 strum_macros = "0.26.3"
-yew-ssg = { path = "../..", optional = true }
+yew-ssg = { workspace = true, optional = true }
 tokio = { version = "1.0", features = ["full"], optional = true }
 markdown = "1.0.0-alpha.23"
-log = "0.4"
+log.workspace = true
 env_logger = { version = "0.10", optional = true }
 chrono = "0.4"
 regex = "1.10.2"
