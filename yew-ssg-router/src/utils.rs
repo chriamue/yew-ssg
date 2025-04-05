@@ -18,18 +18,19 @@ mod tests {
 
     #[test]
     fn test_get_base_url() {
-        // Test when BASE_URL is not set
+        // First test when BASE_URL is not set
+        std::env::remove_var("BASE_URL");
         assert_eq!(get_base_url(), "");
 
-        // Test when BASE_URL is set
-        std::env::set_var("BASE_URL", "/test-base");
-        assert_eq!(get_base_url(), "/test-base");
-        std::env::remove_var("BASE_URL");
+        // Then test when BASE_URL is set
+        std::env::set_var("BASE_URL", "/base");
+        assert_eq!(get_base_url(), "/base");
     }
 
     #[test]
     fn test_combine_with_base_url() {
         // Test without BASE_URL
+        std::env::remove_var("BASE_URL");
         assert_eq!(combine_with_base_url("/page"), "/page");
 
         // Test with BASE_URL
@@ -41,6 +42,7 @@ mod tests {
         std::env::set_var("BASE_URL", "/base/");
         assert_eq!(combine_with_base_url("/page"), "/base/page");
 
+        // Cleanup
         std::env::remove_var("BASE_URL");
     }
 }
