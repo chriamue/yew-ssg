@@ -16,4 +16,4 @@ lol_html.workspace = true
 minijinja.workspace = true
 strum.workspace = true
 yew = { workspace = true, features = ["ssr"] }
-yew-router = { workspace = true }
+yew_router = { workspace = true }

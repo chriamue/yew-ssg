@@ -12,7 +12,6 @@ yew-router = { workspace = true }
 yew-router-macro = { workspace = true }
 serial_test = "3.2.0"
 
-
 [features]
 default = []
 ssg = []

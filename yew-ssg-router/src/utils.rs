@@ -15,8 +15,10 @@ pub fn combine_with_base_url(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn test_get_base_url() {
         // First test when BASE_URL is not set
         std::env::remove_var("BASE_URL");
@@ -28,6 +30,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_combine_with_base_url() {
         // Test without BASE_URL
         std::env::remove_var("BASE_URL");

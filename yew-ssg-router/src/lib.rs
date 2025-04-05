@@ -14,14 +14,20 @@ pub use static_switch::StaticSwitch;
 
 pub mod prelude {
     pub use crate::{get_static_path, is_ssg_mode};
-    pub use yew_router::prelude::*;
 
-    // When in SSG/SSR mode, use our static versions
+    // Import necessary types from yew_router without the components we want to replace
+    pub use yew_router::prelude::{use_location, use_route, Location, LocationHandle, Routable};
+
+    // Conditionally import the right components based on feature flag
     #[cfg(feature = "ssg")]
     pub use crate::{
-        static_navigator::use_navigator, StaticLink as Link, StaticRouter as BrowserRouter,
-        StaticSwitch as Switch,
+        static_link::StaticLink as Link, static_navigator::use_navigator,
+        static_router::StaticRouter as BrowserRouter, static_switch::StaticSwitch as Switch,
     };
+
+    // Only when NOT in SSG mode, import the original router components
+    #[cfg(not(feature = "ssg"))]
+    pub use yew_router::prelude::{use_navigator, BrowserRouter, Link, Switch};
 }
 
 /// Get the current path being rendered during static generation
@@ -31,5 +37,9 @@ pub fn get_static_path() -> Option<String> {
 
 /// Check if the application is running in static generation mode
 pub fn is_ssg_mode() -> bool {
-    cfg!(feature = "ssg") || std::env::var("YEW_SSG_CURRENT_PATH").is_ok()
+    if cfg!(feature = "ssg") {
+        true
+    } else {
+        false
+    }
 }
