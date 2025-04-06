@@ -1,5 +1,6 @@
 pub mod about;
 pub mod app;
+pub mod crates;
 pub mod home;
 pub mod not_found;
 pub mod readme;

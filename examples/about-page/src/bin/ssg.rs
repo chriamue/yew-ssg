@@ -163,6 +163,10 @@ fn get_route_meta_content(route: &Route) -> (&'static str, &'static str) {
             "README | Yew SSG Documentation",
             "Explore the documentation and usage examples for yew-ssg static site generation.",
         ),
+        Route::Crate { .. } => (
+            "Crate | Yew SSG Crates",
+            "Yew SSG Crates"
+        ),
         Route::NotFound => (
             "Page Not Found (404) | Yew SSG Example",
             "Oops! The page you are looking for doesn't exist. Please check the URL.",

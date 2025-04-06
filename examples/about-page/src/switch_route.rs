@@ -1,4 +1,5 @@
 use crate::about::AboutPage;
+use crate::crates::CratesPage;
 use crate::home::HomePage;
 use crate::not_found::NotFoundPage;
 use crate::readme::ReadmePage;
@@ -10,6 +11,7 @@ pub fn switch_route(routes: Route) -> Html {
         Route::Home => html! { <HomePage /> },
         Route::About => html! { <AboutPage /> },
         Route::Readme => html! { <ReadmePage /> },
+        Route::Crate { id } => html! { <CratesPage id={id} /> },
         Route::NotFound => html! { <NotFoundPage /> },
     }
 }

@@ -9,6 +9,8 @@ pub enum Route {
     About,
     #[at("/readme")]
     Readme,
+    #[at("/crate/:id")]
+    Crate { id: String },
     #[not_found]
     #[at("/404")]
     NotFound,

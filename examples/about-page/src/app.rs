@@ -25,6 +25,16 @@ pub fn app() -> Html {
                         </Link<Route>>
                     </li>
                     <li>
+                        <Link<Route> to={Route::Crate { id: "yew-ssg".to_string() }}>
+                            { "Yew SSG Crate" }
+                        </Link<Route>>
+                    </li>
+                    <li>
+                        <Link<Route> to={Route::Crate { id: "yew-ssg-router".to_string() }}>
+                            { "Yew SSG Router Crate" }
+                        </Link<Route>>
+                    </li>
+                    <li>
                         <Link<Route> to={Route::NotFound}>
                             { "Not Found" }
                         </Link<Route>>
