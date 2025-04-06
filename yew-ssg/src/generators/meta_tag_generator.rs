@@ -157,4 +157,59 @@ mod tests {
         assert!(result.contains("<meta name=\"keywords\" content=\"custom, keywords\">"));
         assert!(result.contains("<link rel=\"canonical\" href=\"https://example.com/test\">"));
     }
+
+    #[test]
+    fn test_individual_components() {
+        let generator = MetaTagGenerator {
+            default_description: "Default description".to_string(),
+            default_keywords: vec!["rust".to_string(), "yew".to_string(), "ssg".to_string()],
+        };
+
+        // Set up test metadata
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "canonical".to_string(),
+            "https://example.com/test".to_string(),
+        );
+
+        // Test canonical URL generation
+        let canonical_result = generator
+            .generate(
+                "canonical",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+
+        // Verify exact format of canonical URL
+        assert_eq!(
+            canonical_result,
+            "<link rel=\"canonical\" href=\"https://example.com/test\">\n"
+        );
+
+        // Verify no double wrapping occurs
+        assert!(!canonical_result.contains("<link rel=\"canonical\" href=\"<link"));
+    }
+
+    #[test]
+    fn test_missing_canonical() {
+        let generator = MetaTagGenerator {
+            default_description: "Default description".to_string(),
+            default_keywords: vec!["rust".to_string(), "yew".to_string(), "ssg".to_string()],
+        };
+
+        // Test with empty metadata (no canonical URL)
+        let result = generator
+            .generate(
+                "canonical",
+                "/test-route",
+                "<div>Test content</div>",
+                &HashMap::new(),
+            )
+            .unwrap();
+
+        // Should return empty string when no canonical URL is specified
+        assert_eq!(result, "");
+    }
 }
