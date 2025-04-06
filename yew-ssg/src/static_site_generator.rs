@@ -161,6 +161,314 @@ impl StaticSiteGenerator {
         Ok(())
     }
 
+    /// Generate parameterized routes by inferring the route constructor from patterns
+    pub async fn generate_parameterized_routes<R, C>(&self) -> Result<(), Box<dyn Error>>
+    where
+        R: Routable + Clone + PartialEq + Debug + Send + 'static,
+        C: BaseComponent<Properties = ()> + 'static,
+    {
+        info!("Generating parameterized routes from configuration...");
+
+        // Early return if no parameterized routes are defined
+        if self.config.route_params.is_empty() {
+            info!("No parameterized routes defined in configuration");
+            return Ok(());
+        }
+
+        let mut total_generated = 0;
+
+        // For each parameterized route pattern in the config
+        for (route_pattern_config, route_params) in &self.config.route_params {
+            // Generate all parameter combinations based on the config
+            let param_combinations = route_params.generate_param_combinations();
+            if param_combinations.is_empty() {
+                warn!(
+                    "No valid parameter combinations for route pattern: {}",
+                    route_pattern_config
+                );
+                continue;
+            }
+
+            info!(
+                "Processing {} variants for parameterized route: {}",
+                param_combinations.len(),
+                route_pattern_config
+            );
+
+            // For each parameter combination
+            for params in param_combinations {
+                // Convert the pattern with placeholders into an actual path with values
+                let constructed_path =
+                    Self::construct_path_from_pattern(route_pattern_config, &params);
+
+                // Now use the actual Routable trait to recognize the path
+                if let Some(route) = R::recognize(&constructed_path) {
+                    let route_path = route.to_path();
+
+                    info!(
+                        "Generating parameterized route: {} with params: {:?}",
+                        route_path, params
+                    );
+                    total_generated += 1;
+
+                    // 1. Set the YEW_SSG_CURRENT_PATH env var
+                    std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+
+                    // Set any route params as environment variables for access during rendering
+                    for (key, value) in &params {
+                        std::env::set_var(format!("YEW_SSG_PARAM_{}", key), value);
+                    }
+
+                    // 2. Render the root component
+                    let content = self.render_base_component::<C>().await?;
+
+                    // 3. Clear environment variables
+                    std::env::remove_var("YEW_SSG_CURRENT_PATH");
+                    for key in params.keys() {
+                        std::env::remove_var(format!("YEW_SSG_PARAM_{}", key));
+                    }
+
+                    // 4. Get metadata for the route, including parameter-specific metadata
+                    let metadata = self
+                        .config
+                        .get_metadata_for_parameterized_route(route_pattern_config, &params);
+
+                    // 5. Generate outputs from all generators
+                    let mut generator_outputs = HashMap::new();
+
+                    for generator in &self.config.generators.generators {
+                        // Generate the main output using the generator's name
+                        let name = generator.name();
+                        let result = generator.generate(name, &route_path, &content, &metadata)?;
+                        generator_outputs.insert(name.to_string(), result);
+
+                        // Check if generator supports additional outputs
+                        if let Some(support) =
+                            self.config.generators.try_get_output_support(generator)
+                        {
+                            // Generate additional outputs
+                            for key in support.supported_outputs() {
+                                // Skip the main output we already did
+                                if key == name {
+                                    continue;
+                                }
+
+                                match generator.generate(key, &route_path, &content, &metadata) {
+                                    Ok(output) => {
+                                        generator_outputs.insert(key.to_string(), output);
+                                    }
+                                    Err(e) => {
+                                        warn!("Failed to generate '{}' output: {}", key, e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 6. Run processors on the content
+                    let processed_content = self.config.processors.process_all(
+                        &content,
+                        &metadata,
+                        &generator_outputs,
+                        &content,
+                    )?;
+
+                    // 7. Create the final HTML
+                    let html = self.wrap_html(
+                        &processed_content,
+                        &route_path,
+                        &metadata,
+                        &generator_outputs,
+                    )?;
+
+                    // 8. Write to output file
+                    let (dir_path, file_path) = self.determine_output_path(&route_path);
+                    fs::create_dir_all(&dir_path)?;
+                    fs::write(&file_path, html)?;
+                    info!("  -> Saved to {:?}", file_path);
+                } else {
+                    warn!(
+                        "No route recognized for constructed path: {} (from pattern {})",
+                        constructed_path, route_pattern_config
+                    );
+                }
+            }
+        }
+
+        info!(
+            "Generated {} parameterized route pages in total",
+            total_generated
+        );
+
+        Ok(())
+    }
+
+    // Helper function to construct a path by replacing placeholders with actual values
+    fn construct_path_from_pattern(pattern: &str, params: &HashMap<String, String>) -> String {
+        let mut result = pattern.to_string();
+
+        for (key, value) in params {
+            let placeholder = format!(":{}", key);
+            result = result.replace(&placeholder, value);
+        }
+
+        result
+    }
+
+    pub async fn generate_with_params<R, C, F>(
+        &self,
+        route_pattern: &str,
+        route_builder: F,
+    ) -> Result<(), Box<dyn Error>>
+    where
+        R: Routable + Clone + PartialEq + Debug + Send + 'static,
+        C: BaseComponent<Properties = ()> + 'static,
+        F: Fn(&HashMap<String, String>) -> R,
+    {
+        // Check if we have parameters defined for this route
+        let route_params = match self.config.route_params.get(route_pattern) {
+            Some(params) => params,
+            None => {
+                warn!("No parameters defined for route pattern: {}", route_pattern);
+                return Ok(());
+            }
+        };
+
+        // Generate all parameter combinations based on the config
+        let param_combinations = route_params.generate_param_combinations();
+        if param_combinations.is_empty() {
+            warn!(
+                "No valid parameter combinations for route pattern: {}",
+                route_pattern
+            );
+            return Ok(());
+        }
+
+        info!(
+            "Generating {} variants for parameterized route: {}",
+            param_combinations.len(),
+            route_pattern
+        );
+
+        // Generate a page for each parameter combination
+        for params in param_combinations {
+            // Build the route using the provided function
+            let route = route_builder(&params);
+            let route_path = route.to_path();
+
+            info!(
+                "Generating parameterized route: {} with params: {:?}",
+                route_path, params
+            );
+
+            // 1. Set the YEW_SSG_CURRENT_PATH env var
+            std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+
+            // Set any route params as environment variables for access during rendering
+            for (key, value) in &params {
+                std::env::set_var(format!("YEW_SSG_PARAM_{}", key), value);
+            }
+
+            // 2. Render the root component
+            let content = self.render_base_component::<C>().await?;
+
+            // 3. Clear environment variables
+            std::env::remove_var("YEW_SSG_CURRENT_PATH");
+            for key in params.keys() {
+                std::env::remove_var(format!("YEW_SSG_PARAM_{}", key));
+            }
+
+            // 4. Get metadata for the route, including parameter-specific metadata
+            let metadata = self
+                .config
+                .get_metadata_for_parameterized_route(route_pattern, &params);
+
+            // 5. Generate outputs from all generators
+            let mut generator_outputs = HashMap::new();
+
+            for generator in &self.config.generators.generators {
+                // Generate the main output using the generator's name
+                let name = generator.name();
+                let result = generator.generate(name, &route_path, &content, &metadata)?;
+                generator_outputs.insert(name.to_string(), result);
+
+                // Check if generator supports additional outputs
+                if let Some(support) = self.config.generators.try_get_output_support(generator) {
+                    // Generate additional outputs
+                    for key in support.supported_outputs() {
+                        // Skip the main output we already did
+                        if key == name {
+                            continue;
+                        }
+
+                        match generator.generate(key, &route_path, &content, &metadata) {
+                            Ok(output) => {
+                                generator_outputs.insert(key.to_string(), output);
+                            }
+                            Err(e) => {
+                                warn!("Failed to generate '{}' output: {}", key, e);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 6. Run processors on the content
+            let processed_content = self.config.processors.process_all(
+                &content,
+                &metadata,
+                &generator_outputs,
+                &content,
+            )?;
+
+            // 7. Create the final HTML
+            let html = self.wrap_html(
+                &processed_content,
+                &route_path,
+                &metadata,
+                &generator_outputs,
+            )?;
+
+            // 8. Write to output file
+            let (dir_path, file_path) = self.determine_output_path(&route_path);
+            fs::create_dir_all(&dir_path)?;
+            fs::write(&file_path, html)?;
+            info!("  -> Saved to {:?}", file_path);
+        }
+
+        Ok(())
+    }
+
+    /// Generate all pages with dynamic parameters defined in the configuration.
+    pub async fn generate_all_parameterized_routes<R, C, F>(
+        &self,
+        route_builders: &HashMap<&str, F>,
+    ) -> Result<(), Box<dyn Error>>
+    where
+        R: Routable + Clone + PartialEq + Debug + Send + 'static,
+        C: BaseComponent<Properties = ()> + 'static,
+        F: Fn(&HashMap<String, String>) -> R + Clone, // Add Clone bound
+    {
+        for (route_pattern, route_builder) in route_builders {
+            // Clone the route builder to avoid reference issues
+            let builder_clone = route_builder.clone();
+            self.generate_with_params::<R, C, _>(route_pattern, builder_clone)
+                .await?;
+        }
+        Ok(())
+    }
+
+    /// Helper function to get current parameters during SSG
+    pub fn get_current_params() -> HashMap<String, String> {
+        let mut params = HashMap::new();
+        for (key, value) in std::env::vars() {
+            if let Some(param_name) = key.strip_prefix("YEW_SSG_PARAM_") {
+                params.insert(param_name.to_string(), value);
+            }
+        }
+        params
+    }
+
     /// Render the root component to HTML using server-side rendering.
     async fn render_base_component<C>(&self) -> Result<String, Box<dyn Error>>
     where

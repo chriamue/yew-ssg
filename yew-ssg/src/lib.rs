@@ -1,4 +1,5 @@
 pub mod config;
+pub mod config_loader;
 pub mod generator;
 pub mod generator_collection;
 pub mod generators;

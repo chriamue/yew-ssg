@@ -6,8 +6,109 @@ use crate::generators::{
 use crate::processor::Processor;
 use crate::processor_collection::ProcessorCollection;
 use crate::processors::{AttributeProcessor, TemplateVariableProcessor};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+
+/// Defines parameter names and their valid values for routes with path parameters
+#[derive(Debug, Clone, Default)]
+pub struct RouteParams {
+    /// Maps parameter names to sets of allowed values
+    pub param_values: HashMap<String, HashSet<String>>,
+
+    /// Stores metadata for specific parameter values
+    /// The key is formatted as "param_name=value" (e.g., "id=yew-ssg")
+    pub param_metadata: HashMap<String, HashMap<String, String>>,
+}
+
+impl RouteParams {
+    /// Creates a new empty RouteParams
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds a parameter with its valid values
+    pub fn add_param<I, S>(&mut self, name: &str, values: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        let values_set = values.into_iter().map(|s| s.into()).collect();
+        self.param_values.insert(name.to_string(), values_set);
+        self
+    }
+
+    /// Adds metadata for a specific parameter value
+    pub fn add_param_metadata(
+        &mut self,
+        param_name: &str,
+        param_value: &str,
+        metadata: HashMap<String, String>,
+    ) -> &mut Self {
+        let key = format!("{}={}", param_name, param_value);
+        self.param_metadata.insert(key, metadata);
+        self
+    }
+
+    /// Gets metadata for a specific parameter value
+    pub fn get_param_metadata(
+        &self,
+        param_name: &str,
+        param_value: &str,
+    ) -> Option<&HashMap<String, String>> {
+        let key = format!("{}={}", param_name, param_value);
+        self.param_metadata.get(&key)
+    }
+
+    /// Checks if a parameter value is valid according to the defined constraints
+    pub fn is_valid_param_value(&self, param_name: &str, value: &str) -> bool {
+        if let Some(values) = self.param_values.get(param_name) {
+            values.contains(value)
+        } else {
+            false
+        }
+    }
+
+    /// Generates all possible parameter combinations based on defined parameter values
+    pub fn generate_param_combinations(&self) -> Vec<HashMap<String, String>> {
+        if self.param_values.is_empty() {
+            return vec![];
+        }
+
+        let mut result = Vec::new();
+        self.generate_combinations_recursive(
+            &mut result,
+            &mut HashMap::new(),
+            self.param_values.keys().collect::<Vec<_>>().as_slice(),
+        );
+        result
+    }
+
+    /// Helper method for recursively generating parameter combinations
+    fn generate_combinations_recursive(
+        &self,
+        result: &mut Vec<HashMap<String, String>>,
+        current: &mut HashMap<String, String>,
+        params: &[&String],
+    ) {
+        if params.is_empty() {
+            result.push(current.clone());
+            return;
+        }
+
+        let param_name = params[0];
+        let remaining_params = &params[1..];
+
+        if let Some(values) = self.param_values.get(param_name) {
+            for value in values {
+                current.insert(param_name.clone(), value.clone());
+                self.generate_combinations_recursive(result, current, remaining_params);
+            }
+            current.remove(param_name);
+        } else {
+            self.generate_combinations_recursive(result, current, remaining_params);
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct SsgConfig {
@@ -18,6 +119,8 @@ pub struct SsgConfig {
     pub route_metadata: HashMap<String, HashMap<String, String>>,
     pub generators: GeneratorCollection,
     pub processors: ProcessorCollection,
+    /// Parameter definitions for routes with dynamic segments
+    pub route_params: HashMap<String, RouteParams>,
 }
 
 impl SsgConfig {
@@ -29,6 +132,31 @@ impl SsgConfig {
         if let Some(route_specific) = self.route_metadata.get(route_path) {
             // Route-specific metadata overrides global metadata
             metadata.extend(route_specific.clone());
+        }
+
+        metadata
+    }
+
+    /// Get metadata for a parameterized route, including parameter-specific metadata
+    pub fn get_metadata_for_parameterized_route(
+        &self,
+        route_pattern: &str,
+        params: &HashMap<String, String>,
+    ) -> HashMap<String, String> {
+        let mut metadata = self.get_metadata_for_route(route_pattern);
+
+        // Add parameter values to metadata
+        for (param_name, param_value) in params {
+            metadata.insert(format!("param_{}", param_name), param_value.clone());
+
+            // Add any parameter-specific metadata if available
+            if let Some(route_params) = self.route_params.get(route_pattern) {
+                if let Some(param_metadata) =
+                    route_params.get_param_metadata(param_name, param_value)
+                {
+                    metadata.extend(param_metadata.clone());
+                }
+            }
         }
 
         metadata
@@ -91,6 +219,7 @@ impl Default for SsgConfig {
             route_metadata: HashMap::new(),
             generators: GeneratorCollection::new(),
             processors: ProcessorCollection::new(),
+            route_params: HashMap::new(),
         }
         // Don't add defaults here to allow more control
     }
@@ -145,6 +274,48 @@ impl SsgConfigBuilder {
         self.config
             .route_metadata
             .insert(path.to_string(), metadata);
+        self
+    }
+
+    /// Define parameters for a specific route pattern with dynamic segments
+    pub fn route_params(mut self, route_pattern: &str, params: RouteParams) -> Self {
+        self.config
+            .route_params
+            .insert(route_pattern.to_string(), params);
+        self
+    }
+
+    /// Add a parameter with values to a route pattern
+    pub fn add_route_param<I, S>(mut self, route_pattern: &str, param_name: &str, values: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        let route_params = self
+            .config
+            .route_params
+            .entry(route_pattern.to_string())
+            .or_insert_with(RouteParams::new);
+
+        route_params.add_param(param_name, values);
+        self
+    }
+
+    /// Add metadata for a specific parameter value
+    pub fn add_param_metadata(
+        mut self,
+        route_pattern: &str,
+        param_name: &str,
+        param_value: &str,
+        metadata: HashMap<String, String>,
+    ) -> Self {
+        let route_params = self
+            .config
+            .route_params
+            .entry(route_pattern.to_string())
+            .or_insert_with(RouteParams::new);
+
+        route_params.add_param_metadata(param_name, param_value, metadata);
         self
     }
 

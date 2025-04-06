@@ -32,6 +32,16 @@ impl StaticNavigator {
         }
     }
 
+    // For tests - create with specific values
+    #[cfg(test)]
+    pub fn new_with_path_and_base(path: &str, base_url: &str) -> Self {
+        Self {
+            path: path.to_string(),
+            base_url: base_url.to_string(),
+            basename: None,
+        }
+    }
+
     // Add a new method that accepts basename
     pub fn with_basename(mut self, basename: Option<String>) -> Self {
         self.basename = basename;
@@ -127,7 +137,8 @@ mod tests {
     #[test]
     #[serial]
     fn test_static_navigator() {
-        let navigator = StaticNavigator::new();
+        // Create a navigator with controlled values instead of reading from env vars
+        let navigator = StaticNavigator::new_with_path_and_base("/", "");
 
         // Test path and base_url
         assert_eq!(navigator.path(), "/");
