@@ -1,0 +1,55 @@
+general:
+  output_dir: "dist"
+  site_name: "Yew SSG Example"
+  default_image: "/images/default-social-cover.jpg"
+  template_path: "dist/index.html"
+
+global_metadata:
+  keywords: "yew, rust, ssg, webdev, spa, seo"
+  charset: "utf-8"
+  viewport: "width=device-width, initial-scale=1.0"
+  og:type: "website"
+
+routes:
+  - path: "/"
+    metadata:
+      title: "Home | Yew SSG Example"
+      description: "Welcome to the Yew Static Site Generator example homepage. See how Yew SPAs can be SEO-friendly."
+
+  - path: "/about"
+    metadata:
+      title: "About Us | Yew SSG Example"
+      description: "Learn about the yew-ssg project and how it helps pre-render Yew applications."
+
+  - path: "/readme"
+    metadata:
+      title: "README | Yew SSG Documentation"
+      description: "Explore the documentation and usage examples for yew-ssg static site generation."
+
+  - path: "/404"
+    metadata:
+      title: "Page Not Found (404) | Yew SSG Example"
+      description: "Oops! The page you are looking for doesn't exist. Please check the URL."
+      robots: "noindex, nofollow"
+
+parameterized_routes:
+  - pattern: "/crate/:id"
+    parameters:
+      - name: "id"
+        values: ["yew-ssg", "yew-ssg-router"]
+    metadata:
+      section: "Crates"
+    variants:
+      - values:
+          id: "yew-ssg"
+        metadata:
+          title: "yew-ssg | Static Site Generator for Yew"
+          description: "A powerful static site generator that pre-renders Yew applications into SEO-friendly HTML."
+          keywords: "yew, rust, ssg, static site generator, seo"
+
+      - values:
+          id: "yew-ssg-router"
+        metadata:
+          title: "yew-ssg-router | Router Integration for Yew SSG"
+          description: "Router integration for yew-ssg that provides static pre-rendering with client-side navigation."
+          keywords: "yew, rust, router, ssg, static site generator"
