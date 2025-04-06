@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title><title>yew-ssg-router | Router Integration for Yew SSG</title></title>
+        <meta name="description" content="Router integration for yew-ssg that provides static pre-rendering with client-side navigation.">
+<meta name="keywords" content="yew, rust, router, ssg, static site generator">
+
+        <meta property="og:type" content="website">
+<meta property="og:title" content="yew-ssg-router | Router Integration for Yew SSG">
+<meta property="og:description" content="Router integration for yew-ssg that provides static pre-rendering with client-side navigation.">
+<meta property="og:url" content="">
+<meta property="og:image" content="/images/default-cover.jpg">
+<meta property="og:site_name" content="Yew SSG Site">
+
+        <meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="yew-ssg-router | Router Integration for Yew SSG">
+<meta name="twitter:description" content="Router integration for yew-ssg that provides static pre-rendering with client-side navigation.">
+
+        <meta name="robots" content="index, follow">
+
+        <link rel="stylesheet" href="/styles.css">
+        <script defer src="/app.js"></script>
+    </head>
+    <body>
+        <div id="app"><!--<[about_page::app::App]>--><!--<[yew_ssg_router::static_router::StaticRouter]>--><!--<[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--<[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><nav><ul><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/">Home</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/about">About</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/readme">ReadMe</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg">Yew SSG Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg-router">Yew SSG Router Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/404">Not Found</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li></ul></nav><main><!--<[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--><!--<[about_page::crates::CratesPage]>--><div class="crate-container"><h1>Crate: yew-ssg-router</h1><div class="crate-details"><h2>Router Integration for Static Site Generation 🧭</h2><p class="crate-description">A specialized router implementation for Yew that seamlessly integrates with yew-ssg, providing static pre-rendering capabilities while maintaining full client-side navigation after hydration.</p><h3>Core Features</h3><ul class="crate-features"><li>Drop-in replacement for yew-router with static generation support</li><li>Compatible API with standard yew-router components</li><li>Static navigation during pre-rendering phase</li><li>Full client-side routing after hydration</li><li>Feature-flag controlled switching between SSG and CSR modes</li></ul><h3>Technical Details</h3><dl class="crate-info"><dt>Version</dt><dd>0.1.0 (Alpha)</dd><dt>Dependencies</dt><dd>yew, yew-router, yew-router-macro</dd><dt>Usage</dt><dd>For Yew apps that need both static site generation and client-side routing</dd></dl><h3>Example Usage</h3><pre><code>
+// In your Cargo.toml
+[dependencies]
+yew_router = { package = "yew-ssg-router" }
+
+[features]
+ssg = ["yew/ssr", "yew-ssg", "yew_router/ssg"]
+
+// In your code (identical to regular yew-router)
+use yew::prelude::*;
+use yew_router::prelude::*;
+
+#[function_component(App)]
+pub fn app() -&gt; Html {
+    html! {
+        &lt;BrowserRouter&gt;
+            &lt;Link&lt;Route&gt; to={Route::Home}&gt;{"Home"}&lt;/Link&lt;Route&gt;&gt;
+            &lt;Switch&lt;Route&gt; render={switch_route} /&gt;
+        &lt;/BrowserRouter&gt;
+    }
+}
+                </code></pre></div></div><!--</[about_page::crates::CratesPage]>--><!--</[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--></main><!--</[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><!--</[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--</[yew_ssg_router::static_router::StaticRouter]>--><!--</[about_page::app::App]>--></div>
+    </body>
+</html>

@@ -1,53 +1,28 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-        <!-- Title with development fallback -->
-        <title>Crate | Yew SSG Crates</title>
-
-        <!-- Description with development fallback -->
-        <meta name="description" content="<meta name=&quot;description&quot; content=&quot;Yew SSG Crates&quot;>
-" />
-
-        <!-- Keywords with development fallback -->
-        <meta name="keywords" content="<meta name=&quot;keywords&quot; content=&quot;yew, rust, ssg, webdev, spa, seo&quot;>
-" />
-
-        <!-- Placeholder elements for SEO content -->
-        <meta name="description" content="Yew SSG Crates">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title><title></title></title>
+        <meta name="description" content="A website created with yew-ssg.">
 <meta name="keywords" content="yew, rust, ssg, webdev, spa, seo">
-<link rel="canonical" href="https://blog.chriamue.de/yew-ssg/crate/">
 
         <meta property="og:type" content="website">
-<meta property="og:title" content="Crate | Yew SSG Crates">
-<meta property="og:description" content="Yew SSG Crates">
-<meta property="og:url" content="https://blog.chriamue.de/yew-ssg/crate/">
-<meta property="og:image" content="">
-<meta property="og:site_name" content="Yew SSG Example">
+<meta property="og:title" content="">
+<meta property="og:description" content="">
+<meta property="og:url" content="">
+<meta property="og:image" content="/images/default-cover.jpg">
+<meta property="og:site_name" content="Yew SSG Site">
 
-        <!-- No generator found for placeholder key: twitter_card -->
+        <meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="">
 
-        <!-- No generator found for placeholder key: robots_meta -->
+        <meta name="robots" content="index, follow">
 
-        <!-- Development assets (these will work with trunk serve) -->
-        <link rel="stylesheet" href="/yew-ssg/style-7baffb50ecec694d.css" integrity="sha384-qwR/CJZkPBJvMpxPnIFa7+eqhi8x2I2SLKF+18FxFe2uJ9FwM5canEnpz+TamBmh"/>
-        
-<script type="module">
-import init, * as bindings from '/yew-ssg/about-page-869fb5946f52ffac.js';
-const wasm = await init({ module_or_path: '/yew-ssg/about-page-869fb5946f52ffac_bg.wasm' });
-
-
-window.wasmBindings = bindings;
-
-
-dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
-
-</script>
-    <link rel="modulepreload" href="/yew-ssg/about-page-869fb5946f52ffac.js" crossorigin="anonymous" integrity="sha384-nf+kTeqUj2ZCeKRfnNkqBm5S0Fb0ITSwHawwuYjG5LvMh/ZZIgrJALd7aMOfOPnH"><link rel="preload" href="/yew-ssg/about-page-869fb5946f52ffac_bg.wasm" crossorigin="anonymous" integrity="sha384-8wBjSrkYdkvcBp8iK4EVT6S+AFskOr0piPy1WtWuHWDbqb1N/UUZHqf5jIyyOq/E" as="fetch" type="application/wasm"></head>
+        <link rel="stylesheet" href="/styles.css">
+        <script defer src="/app.js"></script>
+    </head>
     <body>
-        <!-- Default content container - will be populated by Trunk or SSG -->
         <div id="app"><!--<[about_page::app::App]>--><!--<[yew_ssg_router::static_router::StaticRouter]>--><!--<[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--<[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><nav><ul><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/">Home</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/about">About</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/readme">ReadMe</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg">Yew SSG Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg-router">Yew SSG Router Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/404">Not Found</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li></ul></nav><main><!--<[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--><!--<[about_page::not_found::NotFoundPage]>--><div class="not-found-container"><h1>404 - Page Not Found</h1><div class="error-details"><p>We couldn't find what you were looking for.</p><p class="navigator-info">Navigator information: <code>Basename: /</code></p><p class="navigator-test">Testing navigator availability: <code>Available</code></p></div><div class="not-found-actions"><button class="back-home-button">Back to Home (Using Navigator)</button></div></div><!--</[about_page::not_found::NotFoundPage]>--><!--</[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--></main><!--</[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><!--</[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--</[yew_ssg_router::static_router::StaticRouter]>--><!--</[about_page::app::App]>--></div>
     </body>
 </html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title><title>yew-ssg | Static Site Generator for Yew</title></title>
+        <meta name="description" content="A powerful static site generator that pre-renders Yew applications into SEO-friendly HTML.">
+<meta name="keywords" content="yew, rust, ssg, static site generator, seo">
+
+        <meta property="og:type" content="website">
+<meta property="og:title" content="yew-ssg | Static Site Generator for Yew">
+<meta property="og:description" content="A powerful static site generator that pre-renders Yew applications into SEO-friendly HTML.">
+<meta property="og:url" content="">
+<meta property="og:image" content="/images/default-cover.jpg">
+<meta property="og:site_name" content="Yew SSG Site">
+
+        <meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="yew-ssg | Static Site Generator for Yew">
+<meta name="twitter:description" content="A powerful static site generator that pre-renders Yew applications into SEO-friendly HTML.">
+
+        <meta name="robots" content="index, follow">
+
+        <link rel="stylesheet" href="/styles.css">
+        <script defer src="/app.js"></script>
+    </head>
+    <body>
+        <div id="app"><!--<[about_page::app::App]>--><!--<[yew_ssg_router::static_router::StaticRouter]>--><!--<[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--<[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><nav><ul><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/">Home</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/about">About</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/readme">ReadMe</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg">Yew SSG Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg-router">Yew SSG Router Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/404">Not Found</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li></ul></nav><main><!--<[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--><!--<[about_page::crates::CratesPage]>--><div class="crate-container"><h1>Crate: yew-ssg</h1><div class="crate-details"><h2>Static Site Generator for Yew 🚀</h2><p class="crate-description">A powerful static site generator (SSG) that pre-renders Yew applications into SEO-friendly HTML. It bridges the gap between single-page applications and search engine optimization.</p><h3>Core Features</h3><ul class="crate-features"><li>Pre-renders Yew applications to static HTML for improved SEO</li><li>Customizable HTML templates with variable substitution</li><li>Advanced attribute-based templating system</li><li>Extensible generator plugin architecture</li><li>Built-in SEO generators (meta tags, Open Graph, Twitter Cards)</li></ul><h3>Technical Details</h3><dl class="crate-info"><dt>Version</dt><dd>0.1.0 (Alpha)</dd><dt>Dependencies</dt><dd>async-trait, log, lol_html, minijinja, strum, yew</dd><dt>Usage</dt><dd>Primarily for Yew applications that need SEO benefits of static pre-rendering</dd></dl><h3>Example Usage</h3><pre><code>
+// Configure the SSG
+let config = SsgConfigBuilder::new()
+    .output_dir("dist")
+    .global_metadata(HashMap::from([
+        ("site_name".to_string(), "My Awesome Site".to_string()),
+    ]))
+    .build();
+
+// Initialize the generator
+let generator = StaticSiteGenerator::new(config)?;
+
+// Generate static files
+generator.generate::&lt;Route, App&gt;().await?;
+                </code></pre></div></div><!--</[about_page::crates::CratesPage]>--><!--</[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--></main><!--</[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><!--</[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--</[yew_ssg_router::static_router::StaticRouter]>--><!--</[about_page::app::App]>--></div>
+    </body>
+</html>
