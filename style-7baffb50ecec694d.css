@@ -169,6 +169,117 @@ h1 {
     background-color: var(--hover-color);
 }
 
+.crate-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.crate-details {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 1.5rem;
+}
+
+.crate-description {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin: 1.5rem 0;
+    color: #444;
+}
+
+.crate-features {
+    list-style-type: disc;
+    margin: 1rem 0 1.5rem 1.5rem;
+}
+
+.crate-features li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.crate-info {
+    margin: 1.5rem 0;
+}
+
+.crate-info dt {
+    font-weight: bold;
+    margin-top: 1rem;
+    color: var(--primary-color);
+}
+
+.crate-info dd {
+    margin-left: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+pre {
+    background-color: #f0f0f0;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: "Courier New", Courier, monospace;
+    margin: 1rem 0;
+}
+
+code {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #333;
+}
+
+.error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+.error-message {
+    color: #e74c3c;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.error-container ul {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.error-container a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    background-color: #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.error-container a:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+h2 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
     nav ul {
