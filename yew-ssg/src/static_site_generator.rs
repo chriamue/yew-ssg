@@ -864,4 +864,193 @@ mod tests {
         assert!(result.contains("<title>My Test Page</title>"));
         assert!(!result.contains("data-ssg-placeholder"));
     }
+
+    #[test]
+    fn test_canonical_url_handling() {
+        use crate::generators::MetaTagGenerator;
+
+        // Create a test template with a placeholder for canonical URL
+        let template = r#"<!DOCTYPE html><html><head>
+        {{ canonical | default("") | safe }}
+        </head><body>{{ content | safe }}</body></html>"#;
+
+        // Set up configuration
+        let mut config = SsgConfigBuilder::new()
+            .output_dir("test_dist")
+            .default_template_string(template.to_string())
+            .build();
+
+        // Add meta tag generator
+        config.generators.add(MetaTagGenerator {
+            default_description: "Default description".to_string(),
+            default_keywords: vec!["rust".to_string(), "yew".to_string(), "ssg".to_string()],
+        });
+
+        let generator = StaticSiteGenerator::new(config).unwrap();
+
+        // Set up metadata with canonical URL
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "canonical".to_string(),
+            "https://example.com/test".to_string(),
+        );
+
+        // Generate and get outputs from generators
+        let mut generator_outputs = HashMap::new();
+        for generator_box in &generator.config.generators.generators {
+            let key = generator_box.name();
+            match generator_box.generate(key, "/test", "", &metadata) {
+                Ok(output) => {
+                    generator_outputs.insert(key.to_string(), output);
+                }
+                Err(_) => {}
+            }
+
+            // Also get the canonical URL specifically
+            if let Ok(canonical) = generator_box.generate("canonical", "/test", "", &metadata) {
+                generator_outputs.insert("canonical".to_string(), canonical);
+            }
+        }
+
+        // Process the template
+        let result = generator
+            .wrap_html("Test content", "/test", &metadata, &generator_outputs)
+            .unwrap();
+
+        // Verify the canonical URL is properly formatted
+        assert!(result.contains(r#"<link rel="canonical" href="https://example.com/test">"#));
+
+        // Verify there is no nested link tag
+        assert!(!result.contains(r#"<link rel="canonical" href="<link"#));
+    }
+
+    #[test]
+    fn test_canonical_url_in_full_template() {
+        use crate::generators::MetaTagGenerator;
+
+        // Create a more realistic template
+        let template = r#"<!DOCTYPE html><html><head>
+        <title>{{ title | default("Page Title") }}</title>
+        {{ meta_tags | default("") | safe }}
+        </head><body>{{ content | safe }}</body></html>"#;
+
+        // Set up configuration
+        let mut config = SsgConfigBuilder::new()
+            .output_dir("test_dist")
+            .default_template_string(template.to_string())
+            .build();
+
+        // Add meta tag generator
+        config.generators.add(MetaTagGenerator {
+            default_description: "Default description".to_string(),
+            default_keywords: vec!["rust".to_string(), "yew".to_string(), "ssg".to_string()],
+        });
+
+        let generator = StaticSiteGenerator::new(config).unwrap();
+
+        // Set up metadata with canonical URL
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Test Page".to_string());
+        metadata.insert(
+            "canonical".to_string(),
+            "https://example.com/page".to_string(),
+        );
+
+        // Generate outputs from generators
+        let mut generator_outputs = HashMap::new();
+        for generator_box in &generator.config.generators.generators {
+            let key = generator_box.name();
+            if let Ok(output) = generator_box.generate(key, "/test", "", &metadata) {
+                generator_outputs.insert(key.to_string(), output);
+            }
+        }
+
+        // Process the template
+        let result = generator
+            .wrap_html(
+                "<p>Test content</p>",
+                "/test",
+                &metadata,
+                &generator_outputs,
+            )
+            .unwrap();
+
+        // Print for debugging
+        println!("Generated HTML: {}", result);
+
+        // Verify the canonical URL is present and properly formatted
+        assert!(result.contains(r#"<link rel="canonical" href="https://example.com/page">"#));
+
+        // Verify there is no nested link tag
+        assert!(!result.contains(r#"<link rel="canonical" href="<link"#));
+    }
+
+    #[test]
+    fn test_canonical_url_attribute_replacement() {
+        use crate::generators::MetaTagGenerator;
+
+        // Create a template that already has the canonical link tag with a fixed value
+        let template = r#"<!DOCTYPE html><html><head>
+        <title>{{ title | default("Page Title") }}</title>
+        <link rel="canonical" href="example.com">
+        </head><body></body></html>"#;
+
+        // Set up configuration
+        let mut config = SsgConfigBuilder::new()
+            .output_dir("test_dist")
+            .default_template_string(template.to_string())
+            .build();
+
+        // Add meta tag generator
+        config.generators.add(MetaTagGenerator {
+            default_description: "Default description".to_string(),
+            default_keywords: vec!["rust".to_string(), "yew".to_string(), "ssg".to_string()],
+        });
+
+        let generator = StaticSiteGenerator::new(config).unwrap();
+
+        // Set up metadata with canonical URL
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Test Page".to_string());
+        metadata.insert(
+            "canonical".to_string(),
+            "https://example.com/page".to_string(),
+        );
+
+        // Generate outputs from generators
+        let mut generator_outputs = HashMap::new();
+        for generator_box in &generator.config.generators.generators {
+            let key = generator_box.name();
+            if let Ok(output) = generator_box.generate(key, "/test", "", &metadata) {
+                generator_outputs.insert(key.to_string(), output);
+            }
+        }
+
+        // Process the template
+        let result = generator
+            .wrap_html(
+                "<p>Test content</p>",
+                "/test",
+                &metadata,
+                &generator_outputs,
+            )
+            .unwrap();
+
+        // Print for debugging
+        println!("Generated HTML with existing canonical tag: {}", result);
+
+        // Verify we have exactly one canonical link tag
+        let canonical_count = result.matches(r#"<link rel="canonical""#).count();
+        assert_eq!(
+            canonical_count, 1,
+            "Should have exactly one canonical link tag"
+        );
+
+        // Verify the URL in the canonical tag is unchanged (still "example.com")
+        // This is because the template has a static value that isn't replaced by default
+        assert!(result.contains(r#"<link rel="canonical" href="example.com""#));
+
+        // Verify there's no nested tag
+        assert!(!result.contains(r#"href="<link"#));
+    }
 }
