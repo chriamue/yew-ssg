@@ -89,12 +89,29 @@ impl StaticSiteGenerator {
     {
         fs::create_dir_all(&self.config.output_dir)?;
 
+        // Get path prefix from environment variable if set
+        let path_prefix = std::env::var("YEW_SSG_CURRENT_PATH_PREFIX").unwrap_or_default();
+        if !path_prefix.is_empty() {
+            info!("Using path prefix: {}", path_prefix);
+        }
+
         for route in R::iter() {
             let route_path = route.to_path();
             info!("Generating route: {}", route_path);
 
-            // 1. Set the YEW_SSG_CURRENT_PATH env var
-            std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+            // 1. Set the YEW_SSG_CURRENT_PATH env var, with prefix if present
+            if path_prefix.is_empty() {
+                std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+            } else {
+                // If prefix doesn't have a leading slash, add one
+                let prefixed_path = if path_prefix.starts_with('/') {
+                    format!("{}{}", path_prefix, route_path)
+                } else {
+                    format!("/{}{}", path_prefix, route_path)
+                };
+                std::env::set_var("YEW_SSG_CURRENT_PATH", &prefixed_path);
+                info!("  Using prefixed path: {}", prefixed_path);
+            }
 
             // 2. Render the root component
             let content = self.render_base_component::<C>().await?;
@@ -105,6 +122,11 @@ impl StaticSiteGenerator {
             // 4. Get metadata for the route
             let mut metadata = self.config.get_metadata_for_route(&route_path);
             metadata.insert("path".to_string(), route_path.clone());
+
+            // Add prefix to metadata if present
+            if !path_prefix.is_empty() {
+                metadata.insert("path_prefix".to_string(), path_prefix.clone());
+            }
 
             // 5. Generate outputs from all generators
             let mut generator_outputs = HashMap::new();
@@ -152,8 +174,27 @@ impl StaticSiteGenerator {
                 &generator_outputs,
             )?;
 
-            // 8. Write to output file
-            let (dir_path, file_path) = self.determine_output_path(&route_path);
+            // 8. Write to output file - use prefixed output path if prefix is set
+            let (dir_path, file_path) = if path_prefix.is_empty() {
+                self.determine_output_path(&route_path)
+            } else {
+                // If prefix is set, add it to the output path
+                // Ensure prefix doesn't have leading slash for file paths
+                let clean_prefix = path_prefix.trim_start_matches('/');
+
+                if route_path == "/" {
+                    // Special case for root route
+                    let prefixed_dir = self.config.output_dir.join(clean_prefix);
+                    (prefixed_dir.clone(), prefixed_dir.join("index.html"))
+                } else {
+                    // For other routes
+                    let path_component = route_path.trim_start_matches('/');
+                    let prefixed_path = format!("{}/{}", clean_prefix, path_component);
+                    let dir = self.config.output_dir.join(prefixed_path);
+                    (dir.clone(), dir.join("index.html"))
+                }
+            };
+
             fs::create_dir_all(&dir_path)?;
             fs::write(&file_path, html)?;
             info!("  -> Saved to {:?}", file_path);
@@ -174,6 +215,15 @@ impl StaticSiteGenerator {
         if self.config.route_params.is_empty() {
             info!("No parameterized routes defined in configuration");
             return Ok(());
+        }
+
+        // Get path prefix from environment variable if set
+        let path_prefix = std::env::var("YEW_SSG_CURRENT_PATH_PREFIX").unwrap_or_default();
+        if !path_prefix.is_empty() {
+            info!(
+                "Using path prefix for parameterized routes: {}",
+                path_prefix
+            );
         }
 
         let mut total_generated = 0;
@@ -212,8 +262,19 @@ impl StaticSiteGenerator {
                     );
                     total_generated += 1;
 
-                    // 1. Set the YEW_SSG_CURRENT_PATH env var
-                    std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+                    // 1. Set the YEW_SSG_CURRENT_PATH env var, with prefix if present
+                    if path_prefix.is_empty() {
+                        std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+                    } else {
+                        // If prefix doesn't have a leading slash, add one
+                        let prefixed_path = if path_prefix.starts_with('/') {
+                            format!("{}{}", path_prefix, route_path)
+                        } else {
+                            format!("/{}{}", path_prefix, route_path)
+                        };
+                        std::env::set_var("YEW_SSG_CURRENT_PATH", &prefixed_path);
+                        info!("  Using prefixed path: {}", prefixed_path);
+                    }
 
                     // Set any route params as environment variables for access during rendering
                     for (key, value) in &params {
@@ -235,6 +296,11 @@ impl StaticSiteGenerator {
                         .get_metadata_for_parameterized_route(route_pattern_config, &params);
 
                     metadata.insert("path".to_string(), route_path.to_string());
+
+                    // Add prefix to metadata if present
+                    if !path_prefix.is_empty() {
+                        metadata.insert("path_prefix".to_string(), path_prefix.clone());
+                    }
 
                     // 5. Generate outputs from all generators
                     let mut generator_outputs = HashMap::new();
@@ -284,8 +350,27 @@ impl StaticSiteGenerator {
                         &generator_outputs,
                     )?;
 
-                    // 8. Write to output file
-                    let (dir_path, file_path) = self.determine_output_path(&route_path);
+                    // 8. Write to output file - use prefixed output path if prefix is set
+                    let (dir_path, file_path) = if path_prefix.is_empty() {
+                        self.determine_output_path(&route_path)
+                    } else {
+                        // If prefix is set, add it to the output path
+                        // Ensure prefix doesn't have leading slash for file paths
+                        let clean_prefix = path_prefix.trim_start_matches('/');
+
+                        if route_path == "/" {
+                            // Special case for root route
+                            let prefixed_dir = self.config.output_dir.join(clean_prefix);
+                            (prefixed_dir.clone(), prefixed_dir.join("index.html"))
+                        } else {
+                            // For other routes
+                            let path_component = route_path.trim_start_matches('/');
+                            let prefixed_path = format!("{}/{}", clean_prefix, path_component);
+                            let dir = self.config.output_dir.join(prefixed_path);
+                            (dir.clone(), dir.join("index.html"))
+                        }
+                    };
+
                     fs::create_dir_all(&dir_path)?;
                     fs::write(&file_path, html)?;
                     info!("  -> Saved to {:?}", file_path);

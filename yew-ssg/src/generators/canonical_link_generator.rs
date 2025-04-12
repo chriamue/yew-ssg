@@ -100,29 +100,40 @@ impl CanonicalLinkGenerator {
                 .get("path")
                 .cloned()
                 .unwrap_or_else(|| "/".to_string());
-            let path_with_slash = if !current_path.starts_with('/') {
-                format!("/{}", current_path)
-            } else {
-                current_path
-            };
 
             // For each language, generate an alternate link
             for lang in languages {
                 // Check if we have a custom URL for this language
                 let lang_key = format!("alternate_url_{}", lang);
-                let url = if let Some(lang_url) = metadata.get(&lang_key) {
-                    // Use the custom URL as is
-                    lang_url.clone()
-                } else {
-                    // Otherwise, construct the URL with the language parameter
-                    // Use the current path (not just root)
-                    format!("{}{}?lang={}", domain, path_with_slash, lang)
-                };
 
-                result.push_str(&format!(
-                    "<link rel=\"alternate\" hreflang=\"{}\" href=\"{}\">\n",
-                    lang, url
-                ));
+                if let Some(lang_url) = metadata.get(&lang_key) {
+                    // Use the custom URL as is if provided in metadata
+                    result.push_str(&format!(
+                        "<link rel=\"alternate\" hreflang=\"{}\" href=\"{}\">\n",
+                        lang, lang_url
+                    ));
+                } else {
+                    // Handle trailing slashes properly
+                    let path = if current_path.ends_with('/') {
+                        current_path.to_string()
+                    } else {
+                        format!("{}/", current_path)
+                    };
+
+                    // Create the URL based on whether we're using path prefixes or query params
+                    let url = if lang == "en" {
+                        // Default language uses root path
+                        format!("{}{}", domain.trim_end_matches('/'), path)
+                    } else {
+                        // For non-default languages, use a language path prefix
+                        format!("{}/{}{}", domain.trim_end_matches('/'), lang, path)
+                    };
+
+                    result.push_str(&format!(
+                        "<link rel=\"alternate\" hreflang=\"{}\" href=\"{}\">\n",
+                        lang, url
+                    ));
+                }
             }
         }
 
@@ -248,20 +259,23 @@ mod tests {
             "canonical".to_string(),
             "https://example.com/page".to_string(),
         );
+        metadata.insert("path".to_string(), "/page".to_string());
         metadata.insert("alternate_languages".to_string(), "en,es,fr".to_string());
 
         let result = generator
             .generate("alternate_links", "", "", &metadata)
             .unwrap();
 
+        // English (default language) should go to the root path
         assert!(result.contains(
-            "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page/?lang=en\">"
+            "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page/\">"
+        ));
+        // Other languages should use a language path prefix
+        assert!(result.contains(
+            "<link rel=\"alternate\" hreflang=\"es\" href=\"https://example.com/es/page/\">"
         ));
         assert!(result.contains(
-            "<link rel=\"alternate\" hreflang=\"es\" href=\"https://example.com/page/?lang=es\">"
-        ));
-        assert!(result.contains(
-            "<link rel=\"alternate\" hreflang=\"fr\" href=\"https://example.com/page/?lang=fr\">"
+            "<link rel=\"alternate\" hreflang=\"fr\" href=\"https://example.com/fr/page/\">"
         ));
     }
 
@@ -273,6 +287,7 @@ mod tests {
             "canonical".to_string(),
             "https://example.com/page".to_string(),
         );
+        metadata.insert("path".to_string(), "/page".to_string());
         metadata.insert("alternate_languages".to_string(), "en,es".to_string());
         metadata.insert(
             "alternate_url_es".to_string(),
@@ -283,9 +298,11 @@ mod tests {
             .generate("alternate_links", "", "", &metadata)
             .unwrap();
 
+        // English URL should use the path-based approach
         assert!(result.contains(
-            "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page/?lang=en\">"
+            "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page/\">"
         ));
+        // Spanish URL should use the custom URL provided
         assert!(result.contains(
             "<link rel=\"alternate\" hreflang=\"es\" href=\"https://example.es/pagina\">"
         ));
@@ -299,6 +316,7 @@ mod tests {
             "canonical".to_string(),
             "https://example.com/page".to_string(),
         );
+        metadata.insert("path".to_string(), "/page".to_string());
         metadata.insert("alternate_languages".to_string(), "en,es".to_string());
 
         let result = generator
@@ -308,10 +326,10 @@ mod tests {
         // Should contain both canonical and alternate links
         assert!(result.contains("<link rel=\"canonical\" href=\"https://example.com/page\">"));
         assert!(result.contains(
-            "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page/?lang=en\">"
+            "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page/\">"
         ));
         assert!(result.contains(
-            "<link rel=\"alternate\" hreflang=\"es\" href=\"https://example.com/page/?lang=es\">"
+            "<link rel=\"alternate\" hreflang=\"es\" href=\"https://example.com/es/page/\">"
         ));
     }
 
