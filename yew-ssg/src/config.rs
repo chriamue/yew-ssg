@@ -1,7 +1,8 @@
 use crate::generator::Generator;
 use crate::generator_collection::GeneratorCollection;
 use crate::generators::{
-    MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator, TitleGenerator, TwitterCardGenerator,
+    CanonicalLinkGenerator, MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator,
+    TitleGenerator, TwitterCardGenerator,
 };
 use crate::processor::Processor;
 use crate::processor_collection::ProcessorCollection;
@@ -173,6 +174,9 @@ impl SsgConfig {
                 default_description: "A website created with yew-ssg.".to_string(),
                 default_keywords: vec!["yew".to_string(), "rust".to_string(), "ssg".to_string()],
             });
+
+            // Canonical link generator
+            self.generators.add(CanonicalLinkGenerator::new());
 
             // Open Graph generator
             self.generators.add(OpenGraphGenerator {

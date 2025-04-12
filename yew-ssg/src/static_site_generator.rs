@@ -103,7 +103,8 @@ impl StaticSiteGenerator {
             std::env::remove_var("YEW_SSG_CURRENT_PATH");
 
             // 4. Get metadata for the route
-            let metadata = self.config.get_metadata_for_route(&route_path);
+            let mut metadata = self.config.get_metadata_for_route(&route_path);
+            metadata.insert("path".to_string(), route_path.clone());
 
             // 5. Generate outputs from all generators
             let mut generator_outputs = HashMap::new();
@@ -229,9 +230,11 @@ impl StaticSiteGenerator {
                     }
 
                     // 4. Get metadata for the route, including parameter-specific metadata
-                    let metadata = self
+                    let mut metadata = self
                         .config
                         .get_metadata_for_parameterized_route(route_pattern_config, &params);
+
+                    metadata.insert("path".to_string(), route_path.to_string());
 
                     // 5. Generate outputs from all generators
                     let mut generator_outputs = HashMap::new();
@@ -379,9 +382,10 @@ impl StaticSiteGenerator {
             }
 
             // 4. Get metadata for the route, including parameter-specific metadata
-            let metadata = self
+            let mut metadata = self
                 .config
                 .get_metadata_for_parameterized_route(route_pattern, &params);
+            metadata.insert("path".to_string(), route_path.to_string());
 
             // 5. Generate outputs from all generators
             let mut generator_outputs = HashMap::new();
@@ -1052,5 +1056,90 @@ mod tests {
 
         // Verify there's no nested tag
         assert!(!result.contains(r#"href="<link"#));
+    }
+
+    #[test]
+    fn test_canonical_url_with_parameterized_routes() {
+        use crate::config::RouteParams;
+        use crate::generators::CanonicalLinkGenerator;
+
+        // Create a test template with a placeholder for canonical links
+        let template = r#"<!DOCTYPE html><html><head>
+        {{ canonical_links | default("") | safe }}
+        </head><body>{{ content | safe }}</body></html>"#;
+
+        // Set up configuration with route parameters
+        let mut config = SsgConfigBuilder::new()
+            .output_dir("test_dist")
+            .default_template_string(template.to_string())
+            .build();
+
+        // Add canonical link generator with domain
+        config
+            .generators
+            .add(CanonicalLinkGenerator::with_domain("https://example.com"));
+
+        // Set up route parameters for a crate route
+        let mut route_params = RouteParams::new();
+        route_params.add_param("id", ["test-crate"]);
+
+        // Add metadata for specific parameter value
+        let mut param_metadata = HashMap::new();
+        param_metadata.insert("title".to_string(), "Test Crate Details".to_string());
+        param_metadata.insert(
+            "description".to_string(),
+            "Description of test crate".to_string(),
+        );
+
+        route_params.add_param_metadata("id", "test-crate", param_metadata);
+
+        // Add the route parameters to the config
+        config
+            .route_params
+            .insert("/crate/:id".to_string(), route_params);
+
+        let generator = StaticSiteGenerator::new(config).unwrap();
+
+        // Simulate generating a parameterized route
+        let params = HashMap::from([("id".to_string(), "test-crate".to_string())]);
+        let route_pattern = "/crate/:id";
+        let route_path = "/crate/test-crate";
+
+        // Get metadata for the route with parameters
+        let mut metadata = generator
+            .config
+            .get_metadata_for_parameterized_route(route_pattern, &params);
+
+        // IMPORTANT: Add path to metadata as would happen in generate_parameterized_routes
+        metadata.insert("path".to_string(), route_path.to_string());
+
+        // Generate outputs from generators
+        let mut generator_outputs = HashMap::new();
+        for generator_box in &generator.config.generators.generators {
+            let key = generator_box.name();
+            if let Ok(output) = generator_box.generate(key, route_path, "", &metadata) {
+                generator_outputs.insert(key.to_string(), output);
+            }
+        }
+
+        // Process the template
+        let result = generator
+            .wrap_html(
+                "<p>Test content</p>",
+                route_path,
+                &metadata,
+                &generator_outputs,
+            )
+            .unwrap();
+
+        // Print for debugging
+        println!("Generated HTML for parameterized route: {}", result);
+
+        // Verify the canonical URL is present and correctly formed
+        assert!(
+            result
+                .contains(r#"<link rel="canonical" href="https://example.com/crate/test-crate">"#),
+            "Canonical URL should be correctly generated for parameterized route"
+        );
     }
 }
