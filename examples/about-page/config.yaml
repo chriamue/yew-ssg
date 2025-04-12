@@ -9,12 +9,17 @@ global_metadata:
   charset: "utf-8"
   viewport: "width=device-width, initial-scale=1.0"
   og:type: "website"
+  alternate_languages: "en,es,de"
+  domain: "https://example.com"
 
 routes:
   - path: "/"
     metadata:
       title: "Home | Yew SSG Example"
       description: "Welcome to the Yew Static Site Generator example homepage. See how Yew SPAs can be SEO-friendly."
+      canonical: "https://example.com/"
+      alternate_url_en: "https://example.com/?lang=en"
+      alternate_url_es: "https://example.com/es/"
 
   - path: "/about"
     metadata:
