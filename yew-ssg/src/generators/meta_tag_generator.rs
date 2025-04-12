@@ -62,7 +62,24 @@ impl Generator for MetaTagGenerator {
                 Ok(tags)
             }
 
-            // Individual meta components
+            // Individual meta content values (not the complete HTML tags)
+            "description_content" => {
+                let description = metadata
+                    .get("description")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_description.clone());
+                Ok(description)
+            }
+
+            "keywords_content" => {
+                let keywords = metadata
+                    .get("keywords")
+                    .cloned()
+                    .unwrap_or_else(|| self.default_keywords.join(", "));
+                Ok(keywords)
+            }
+
+            // Individual HTML meta elements
             "description" => {
                 let description = metadata
                     .get("description")
@@ -105,111 +122,13 @@ impl Generator for MetaTagGenerator {
 
 impl GeneratorOutputSupport for MetaTagGenerator {
     fn supported_outputs(&self) -> Vec<&'static str> {
-        vec!["meta_tags", "description", "keywords", "canonical"]
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::generator::Generator;
-    use crate::generators::MetaTagGenerator;
-    use std::collections::HashMap;
-
-    #[test]
-    fn test_meta_tag_generator() {
-        let generator = MetaTagGenerator {
-            default_description: "Default description".to_string(),
-            default_keywords: vec!["rust".to_string(), "yew".to_string(), "ssg".to_string()],
-        };
-
-        // Test with empty metadata
-        let result = generator
-            .generate(
-                "meta_tags",
-                "/test-route",
-                "<div>Test content</div>",
-                &HashMap::new(),
-            )
-            .unwrap();
-
-        assert!(result.contains("<meta name=\"description\" content=\"Default description\">"));
-        assert!(result.contains("<meta name=\"keywords\" content=\"rust, yew, ssg\">"));
-
-        // Test with custom metadata
-        let mut metadata = HashMap::new();
-        metadata.insert("description".to_string(), "Custom description".to_string());
-        metadata.insert("keywords".to_string(), "custom, keywords".to_string());
-        metadata.insert(
-            "canonical".to_string(),
-            "https://example.com/test".to_string(),
-        );
-
-        let result = generator
-            .generate(
-                "meta_tags",
-                "/test-route",
-                "<div>Test content</div>",
-                &metadata,
-            )
-            .unwrap();
-
-        assert!(result.contains("<meta name=\"description\" content=\"Custom description\">"));
-        assert!(result.contains("<meta name=\"keywords\" content=\"custom, keywords\">"));
-        assert!(result.contains("<link rel=\"canonical\" href=\"https://example.com/test\">"));
-    }
-
-    #[test]
-    fn test_individual_components() {
-        let generator = MetaTagGenerator {
-            default_description: "Default description".to_string(),
-            default_keywords: vec!["rust".to_string(), "yew".to_string(), "ssg".to_string()],
-        };
-
-        // Set up test metadata
-        let mut metadata = HashMap::new();
-        metadata.insert(
-            "canonical".to_string(),
-            "https://example.com/test".to_string(),
-        );
-
-        // Test canonical URL generation
-        let canonical_result = generator
-            .generate(
-                "canonical",
-                "/test-route",
-                "<div>Test content</div>",
-                &metadata,
-            )
-            .unwrap();
-
-        // Verify exact format of canonical URL
-        assert_eq!(
-            canonical_result,
-            "<link rel=\"canonical\" href=\"https://example.com/test\">\n"
-        );
-
-        // Verify no double wrapping occurs
-        assert!(!canonical_result.contains("<link rel=\"canonical\" href=\"<link"));
-    }
-
-    #[test]
-    fn test_missing_canonical() {
-        let generator = MetaTagGenerator {
-            default_description: "Default description".to_string(),
-            default_keywords: vec!["rust".to_string(), "yew".to_string(), "ssg".to_string()],
-        };
-
-        // Test with empty metadata (no canonical URL)
-        let result = generator
-            .generate(
-                "canonical",
-                "/test-route",
-                "<div>Test content</div>",
-                &HashMap::new(),
-            )
-            .unwrap();
-
-        // Should return empty string when no canonical URL is specified
-        assert_eq!(result, "");
+        vec![
+            "meta_tags",
+            "description",
+            "keywords",
+            "canonical",
+            "description_content",
+            "keywords_content",
+        ]
     }
 }

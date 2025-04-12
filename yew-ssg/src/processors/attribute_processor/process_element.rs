@@ -7,7 +7,7 @@ pub fn process_element(
     attribute: SsgAttribute,
     element: &mut Element,
     generated_content: &str,
-    _metadata: &HashMap<String, String>, // Kept for API compatibility
+    _metadata: &HashMap<String, String>,
 ) {
     // Remove SSG attributes
     element.remove_attribute("data-ssg");
@@ -33,8 +33,13 @@ pub fn process_element(
             if generated_content == "{{__PRESERVE_ORIGINAL__}}" {
                 // Do nothing, keeping original content
             } else if !generated_content.is_empty() {
-                // Replace inner content with generated content
-                element.set_inner_content(generated_content, ContentType::Html);
+                // For meta tags with content attribute, update the content attribute instead
+                if element.tag_name() == "meta" && element.has_attribute("content") {
+                    let _ = element.set_attribute("content", generated_content);
+                } else {
+                    // Replace inner content with generated content for other elements
+                    element.set_inner_content(generated_content, ContentType::Html);
+                }
             }
             // If empty, we still want to replace (for cases like data-ssg="content")
             else if element.get_attribute("data-ssg") == Some("content".to_string()) {
