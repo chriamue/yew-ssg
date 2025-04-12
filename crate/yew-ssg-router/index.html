@@ -1,9 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
     <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <!-- Title with development fallback -->
         <title><title>yew-ssg-router | Router Integration for Yew SSG</title></title>
+
+        <!-- Description with development fallback -->
+        <meta name="description" content="<meta name=&quot;description&quot; content=&quot;Router integration for yew-ssg that provides static pre-rendering with client-side navigation.&quot;>
+" />
+
+        <!-- Keywords with development fallback -->
+        <meta name="keywords" content="<meta name=&quot;keywords&quot; content=&quot;yew, rust, router, ssg, static site generator&quot;>
+" />
+
+        <!-- Placeholder elements for SEO content -->
         <meta name="description" content="Router integration for yew-ssg that provides static pre-rendering with client-side navigation.">
 <meta name="keywords" content="yew, rust, router, ssg, static site generator">
 
@@ -18,12 +30,27 @@
 <meta name="twitter:title" content="yew-ssg-router | Router Integration for Yew SSG">
 <meta name="twitter:description" content="Router integration for yew-ssg that provides static pre-rendering with client-side navigation.">
 
+
         <meta name="robots" content="index, follow">
 
-        <link rel="stylesheet" href="/styles.css">
-        <script defer src="/app.js"></script>
-    </head>
+
+        <!-- Development assets (these will work with trunk serve) -->
+        <link rel="stylesheet" href="/yew-ssg/style-7baffb50ecec694d.css" integrity="sha384-qwR/CJZkPBJvMpxPnIFa7+eqhi8x2I2SLKF+18FxFe2uJ9FwM5canEnpz+TamBmh"/>
+        
+<script type="module">
+import init, * as bindings from '/yew-ssg/about-page-869fb5946f52ffac.js';
+const wasm = await init({ module_or_path: '/yew-ssg/about-page-869fb5946f52ffac_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+    <link rel="modulepreload" href="/yew-ssg/about-page-869fb5946f52ffac.js" crossorigin="anonymous" integrity="sha384-nf+kTeqUj2ZCeKRfnNkqBm5S0Fb0ITSwHawwuYjG5LvMh/ZZIgrJALd7aMOfOPnH"><link rel="preload" href="/yew-ssg/about-page-869fb5946f52ffac_bg.wasm" crossorigin="anonymous" integrity="sha384-8wBjSrkYdkvcBp8iK4EVT6S+AFskOr0piPy1WtWuHWDbqb1N/UUZHqf5jIyyOq/E" as="fetch" type="application/wasm"></head>
     <body>
+        <!-- Default content container - will be populated by Trunk or SSG -->
         <div id="app"><!--<[about_page::app::App]>--><!--<[yew_ssg_router::static_router::StaticRouter]>--><!--<[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--<[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><nav><ul><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/">Home</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/about">About</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/readme">ReadMe</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg">Yew SSG Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg-router">Yew SSG Router Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/404">Not Found</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li></ul></nav><main><!--<[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--><!--<[about_page::crates::CratesPage]>--><div class="crate-container"><h1>Crate: yew-ssg-router</h1><div class="crate-details"><h2>Router Integration for Static Site Generation 🧭</h2><p class="crate-description">A specialized router implementation for Yew that seamlessly integrates with yew-ssg, providing static pre-rendering capabilities while maintaining full client-side navigation after hydration.</p><h3>Core Features</h3><ul class="crate-features"><li>Drop-in replacement for yew-router with static generation support</li><li>Compatible API with standard yew-router components</li><li>Static navigation during pre-rendering phase</li><li>Full client-side routing after hydration</li><li>Feature-flag controlled switching between SSG and CSR modes</li></ul><h3>Technical Details</h3><dl class="crate-info"><dt>Version</dt><dd>0.1.0 (Alpha)</dd><dt>Dependencies</dt><dd>yew, yew-router, yew-router-macro</dd><dt>Usage</dt><dd>For Yew apps that need both static site generation and client-side routing</dd></dl><h3>Example Usage</h3><pre><code>
 // In your Cargo.toml
 [dependencies]
