@@ -3,6 +3,7 @@ general:
   site_name: "Yew SSG Example"
   default_image: "/images/default-social-cover.jpg"
   template_path: "dist/index.html"
+  assets_base_dir: "assets"
 
 global_metadata:
   keywords: "yew, rust, ssg, webdev, spa, seo"
@@ -65,7 +66,7 @@ parameterized_routes:
           title: "yew-ssg | Static Site Generator for Yew"
           description: "A powerful static site generator that pre-renders Yew applications into SEO-friendly HTML."
           keywords: "yew, rust, ssg, static site generator, seo"
-          json_ld_file: "assets/yew-ssg.jsonld"
+          json_ld_file: "yew-ssg.jsonld"
 
       - values:
           id: "yew-ssg-router"
