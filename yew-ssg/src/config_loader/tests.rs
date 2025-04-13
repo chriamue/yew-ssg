@@ -288,6 +288,8 @@ routes:
             general: GeneralConfig {
                 output_dir: PathBuf::from("conversion_test"),
                 template_path: Some(PathBuf::from("template.html")),
+                assets_base_dir: None,
+                json_ld_base_dir: None,
                 default_template: "<html>{{ content }}</html>".to_string(),
                 site_name: "Conversion Test".to_string(),
                 title_format: "{title} - {site_name}".to_string(),

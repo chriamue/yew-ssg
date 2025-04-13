@@ -122,6 +122,8 @@ pub struct SsgConfig {
     pub processors: ProcessorCollection,
     /// Parameter definitions for routes with dynamic segments
     pub route_params: HashMap<String, RouteParams>,
+    /// Base directory for asset files (images, JSON-LD, etc.)
+    pub assets_base_dir: Option<String>,
 }
 
 impl SsgConfig {
@@ -195,8 +197,23 @@ impl SsgConfig {
                 default_robots: "index, follow".to_string(),
             });
 
-            // JSON-LD generator
-            self.generators.add(JsonLdGenerator::new());
+            // JSON-LD generator (now with assets base directory)
+            let mut json_ld_generator = JsonLdGenerator::new();
+
+            // Use either the direct assets_base_dir field, or check global_metadata for
+            // either "assets_base_dir" or legacy "json_ld_base_dir" (for backward compatibility)
+            let assets_dir = self.assets_base_dir.clone().or_else(|| {
+                self.global_metadata
+                    .get("assets_base_dir")
+                    .or_else(|| self.global_metadata.get("json_ld_base_dir"))
+                    .cloned()
+            });
+
+            if let Some(dir) = assets_dir {
+                json_ld_generator.json_ld_base_dir = Some(dir);
+            }
+
+            self.generators.add(json_ld_generator);
         }
         self
     }
@@ -227,6 +244,7 @@ impl Default for SsgConfig {
             generators: GeneratorCollection::new(),
             processors: ProcessorCollection::new(),
             route_params: HashMap::new(),
+            assets_base_dir: None,
         }
         // Don't add defaults here to allow more control
     }
@@ -289,6 +307,11 @@ impl SsgConfigBuilder {
         self.config
             .route_params
             .insert(route_pattern.to_string(), params);
+        self
+    }
+
+    pub fn assets_base_dir(mut self, path: &str) -> Self {
+        self.config.assets_base_dir = Some(path.to_string());
         self
     }
 

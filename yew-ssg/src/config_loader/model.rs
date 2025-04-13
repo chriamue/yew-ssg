@@ -37,7 +37,13 @@ pub struct GeneralConfig {
 
     /// Default template content as a string if no file is used
     #[serde(default)]
-    pub default_template: String, // Add this field
+    pub default_template: String,
+
+    /// Base directory for asset files
+    pub assets_base_dir: Option<String>,
+
+    /// Base directory for JSON-LD files
+    pub json_ld_base_dir: Option<String>,
 
     /// Default site name
     #[serde(default = "default_site_name")]
@@ -130,6 +136,14 @@ impl SsgFileConfig {
         // Set default template content if provided
         if !self.general.default_template.is_empty() {
             builder = builder.default_template_string(self.general.default_template.clone());
+        }
+
+        // Set assets base directory, preferring the new field but falling back to the old one
+        if let Some(assets_dir) = &self.general.assets_base_dir {
+            builder = builder.assets_base_dir(assets_dir);
+        } else if let Some(json_ld_dir) = &self.general.json_ld_base_dir {
+            // Fallback to json_ld_base_dir for backward compatibility
+            builder = builder.assets_base_dir(json_ld_dir);
         }
 
         // Set global metadata
