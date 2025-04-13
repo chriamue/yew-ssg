@@ -1,8 +1,8 @@
 use crate::generator::Generator;
 use crate::generator_collection::GeneratorCollection;
 use crate::generators::{
-    CanonicalLinkGenerator, MetaTagGenerator, OpenGraphGenerator, RobotsMetaGenerator,
-    TitleGenerator, TwitterCardGenerator,
+    CanonicalLinkGenerator, JsonLdGenerator, MetaTagGenerator, OpenGraphGenerator,
+    RobotsMetaGenerator, TitleGenerator, TwitterCardGenerator,
 };
 use crate::processor::Processor;
 use crate::processor_collection::ProcessorCollection;
@@ -194,6 +194,9 @@ impl SsgConfig {
             self.generators.add(RobotsMetaGenerator {
                 default_robots: "index, follow".to_string(),
             });
+
+            // JSON-LD generator
+            self.generators.add(JsonLdGenerator::new());
         }
         self
     }
