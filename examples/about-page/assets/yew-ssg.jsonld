@@ -1,0 +1,97 @@
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "yew-ssg",
+  "alternateName": "Yew Static Site Generator",
+  "description": "A powerful static site generator (SSG) that pre-renders Yew applications into SEO-friendly HTML. It bridges the gap between single-page applications and search engine optimization.",
+  "version": "0.1.0",
+  "releaseNotes": "Alpha release",
+  "codeRepository": "https://github.com/yew-ssg/yew-ssg",
+  "programmingLanguage": {
+    "@type": "ComputerLanguage",
+    "name": "Rust"
+  },
+  "runtimePlatform": "WebAssembly, Server-Side Rendering",
+  "keywords": "yew, rust, ssg, static site generator, seo, webassembly, wasm",
+  "applicationCategory": "DeveloperApplication",
+  "license": "https://opensource.org/licenses/MIT",
+  "datePublished": "2023-10-01",
+  "dateModified": "2023-11-15",
+  "author": {
+    "@type": "Organization",
+    "name": "Yew SSG Team",
+    "url": "https://github.com/yew-ssg"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Yew SSG Project",
+    "url": "https://example.com"
+  },
+  "softwareRequirements": "Rust 1.64+",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock"
+  },
+  "dependencies": "async-trait, log, lol_html, minijinja, strum, yew",
+  "featureList": [
+    "Pre-renders Yew applications to static HTML for improved SEO",
+    "Customizable HTML templates with variable substitution",
+    "Advanced attribute-based templating system",
+    "Extensible generator plugin architecture",
+    "Built-in SEO generators (meta tags, Open Graph, Twitter Cards)"
+  ],
+  "potentialAction": {
+    "@type": "UseAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://crates.io/crates/yew-ssg",
+      "actionPlatform": [
+        "https://schema.org/DesktopWebPlatform",
+        "https://schema.org/IOSPlatform",
+        "https://schema.org/AndroidPlatform"
+      ]
+    },
+    "expectsAcceptanceOf": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://example.com/crate/yew-ssg",
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://example.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Crates",
+          "item": "https://example.com/crates"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "yew-ssg",
+          "item": "https://example.com/crate/yew-ssg"
+        }
+      ]
+    }
+  },
+  "isAccessibleForFree": true,
+  "discussionUrl": "https://github.com/yew-ssg/yew-ssg/discussions",
+  "inLanguage": "en",
+  "copyrightYear": "2023",
+  "copyrightHolder": {
+    "@type": "Organization",
+    "name": "Yew SSG Team"
+  }
+}

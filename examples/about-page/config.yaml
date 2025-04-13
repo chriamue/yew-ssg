@@ -12,6 +12,14 @@ global_metadata:
   alternate_languages: "en,es,de"
   domain: "https://example.com"
 
+  # Organization JSON-LD data (used across the site)
+  organization_name: "Yew SSG Project"
+  organization_logo: "https://example.com/logo.png"
+  organization_type: "SoftwareApplication"
+  organization_url: "https://example.com"
+  organization_founder: "The Yew SSG Team"
+  organization_founding_date: "2025-04-01"
+
 routes:
   - path: "/"
     metadata:
@@ -20,6 +28,12 @@ routes:
       canonical: "https://example.com/"
       alternate_url_en: "https://example.com/?lang=en"
       alternate_url_es: "https://example.com/es/"
+      json_ld_type: "WebSite"
+      headline: "Yew SSG - Static Site Generation for Rust Web Apps"
+      publisher: "Yew SSG Project"
+      author: "Yew SSG Team"
+      date_published: "2025-02-15"
+      date_modified: "2025-03-10"
 
   - path: "/about"
     metadata:
@@ -51,6 +65,7 @@ parameterized_routes:
           title: "yew-ssg | Static Site Generator for Yew"
           description: "A powerful static site generator that pre-renders Yew applications into SEO-friendly HTML."
           keywords: "yew, rust, ssg, static site generator, seo"
+          json_ld_file: "assets/yew-ssg.jsonld"
 
       - values:
           id: "yew-ssg-router"
