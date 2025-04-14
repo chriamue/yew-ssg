@@ -36,6 +36,18 @@ routes:
       date_published: "2025-02-15"
       date_modified: "2025-03-10"
 
+  - path: "/en/"
+    metadata:
+      title: "Home | Yew SSG Example (English)"
+      description: "Welcome to the Yew Static Site Generator example homepage in English."
+      lang: "en"
+
+  - path: "/de/"
+    metadata:
+      title: "Startseite | Yew SSG Beispiel (Deutsch)"
+      description: "Willkommen auf der Yew Static Site Generator Beispielseite in Deutsch."
+      lang: "de"
+
   - path: "/about"
     metadata:
       title: "About Us | Yew SSG Example"

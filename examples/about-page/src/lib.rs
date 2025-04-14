@@ -2,6 +2,8 @@ pub mod about;
 pub mod app;
 pub mod crates;
 pub mod home;
+pub mod i18n;
+pub mod language_selector;
 pub mod not_found;
 pub mod readme;
 pub mod route;

@@ -1,5 +1,5 @@
 use about_page::app::App;
-use about_page::route::Route;
+use about_page::route::LocalizedRoute;
 use env_logger::{Builder, Env};
 use log::{error, info};
 use std::env;
@@ -50,15 +50,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let generator = StaticSiteGenerator::new(config)?;
 
     // --- Generate Standard Routes ---
-    info!("📄 Generating standard routes...");
-    generator.generate::<Route, App>().await?;
+    info!("📄 Generating standard routes with localization...");
+    generator.generate::<LocalizedRoute, App>().await?;
 
     // --- Generate Parameterized Routes ---
-    info!("📝 Generating parameterized routes...");
-
-    // Generate parameterized routes automatically - no lambda function needed!
+    info!("📝 Generating parameterized routes with localization...");
     generator
-        .generate_parameterized_routes::<Route, App>()
+        .generate_parameterized_routes::<LocalizedRoute, App>()
         .await?;
 
     info!("\n✅ Static site generation complete! Check the 'dist' directory.");

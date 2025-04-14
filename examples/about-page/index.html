@@ -32,11 +32,34 @@
 
         <script data-ssg-placeholder="json_ld"></script>
 
-        <!-- Development assets (these will work with trunk serve) -->
         <link data-trunk rel="css" href="style.css" />
+
         <link data-trunk rel="rust" href="Cargo.toml" />
+
+        <style>
+            body {
+                background-color: #f5f5f5;
+                font-family: sans-serif;
+            }
+
+            .test-style {
+                color: red;
+                font-weight: bold;
+            }
+        </style>
     </head>
     <body>
+        <style>
+            body {
+                background-color: #f5f5f5;
+                font-family: sans-serif;
+            }
+
+            .test-style {
+                color: red;
+                font-weight: bold;
+            }
+        </style>
         <!-- Default content container - will be populated by Trunk or SSG -->
         <div id="app" data-ssg="content"></div>
     </body>
