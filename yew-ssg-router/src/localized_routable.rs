@@ -1,6 +1,4 @@
-use std::collections::HashMap;
 use std::fmt::Debug;
-use yew::prelude::*;
 use yew_router::Routable;
 
 /// Extends `Routable` to support localized routes with language prefixes.

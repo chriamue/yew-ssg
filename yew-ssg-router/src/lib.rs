@@ -8,6 +8,7 @@ mod static_switch;
 pub mod utils;
 
 mod language_context;
+mod localized_app;
 mod localized_link;
 mod localized_routable;
 mod localized_switch;
@@ -19,6 +20,7 @@ pub use static_router::StaticRouter;
 pub use static_switch::StaticSwitch;
 
 pub use language_context::{use_language, LanguageContext, LanguageProvider, TextDirection};
+pub use localized_app::{LocalizedApp, LocalizedAppProps};
 pub use localized_link::{LocalizedLink, LocalizedLinkProps};
 pub use localized_routable::LocalizedRoutable;
 pub use localized_switch::{LocalizedSwitch, LocalizedSwitchProps};
@@ -28,6 +30,11 @@ pub mod prelude {
     pub use crate::{get_static_path, is_ssg_mode};
 
     // Import necessary types from yew_router without the components we want to replace
+    pub use crate::language_context::{
+        use_language, LanguageContext, LanguageProvider, TextDirection,
+    };
+    pub use crate::localized_app::{LocalizedApp, LocalizedAppProps};
+    pub use crate::localized_routable::LocalizedRoutable;
     pub use crate::route_language::{use_route_language, RouteLanguageExtractor};
     pub use yew_router::prelude::{use_location, use_route, Location, LocationHandle, Routable};
 

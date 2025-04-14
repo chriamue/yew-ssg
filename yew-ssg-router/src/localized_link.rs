@@ -57,7 +57,6 @@ where
         let on_click = props.onclick.clone();
         let to = props.to.clone();
         let disabled = props.disabled;
-        let query = props.query.clone();
 
         // Only perform client-side navigation in browser context
         #[cfg(not(feature = "ssg"))]
