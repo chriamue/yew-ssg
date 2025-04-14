@@ -18,7 +18,7 @@
 <link rel="alternate" hreflang="en" href="https://example.com/404/">
 <link rel="alternate" hreflang="es" href="https://example.com/es/404/">
 <link rel="alternate" hreflang="de" href="https://example.com/de/404/">
-
+</meta>
 
         <!-- Placeholder elements for SEO content -->
         <meta property="og:type" content="website">
@@ -48,12 +48,12 @@
 }
 </script>
 
-        <!-- Development assets (these will work with trunk serve) -->
-        <link rel="stylesheet" href="/yew-ssg/style-7baffb50ecec694d.css" integrity="sha384-qwR/CJZkPBJvMpxPnIFa7+eqhi8x2I2SLKF+18FxFe2uJ9FwM5canEnpz+TamBmh"/>
+        <link rel="stylesheet" href="/yew-ssg/style-40a1e41bac147924.css" integrity="sha384-Fav9PQjNbEOb2IFYPNvKGw1KmkpdupLThUpjLOkjRlebwpNsVaJT5b2ztRdw69BQ"/>
+
         
 <script type="module">
-import init, * as bindings from '/yew-ssg/about-page-1c29e6fd002ea256.js';
-const wasm = await init({ module_or_path: '/yew-ssg/about-page-1c29e6fd002ea256_bg.wasm' });
+import init, * as bindings from '/yew-ssg/about-page-1fc975454d55021e.js';
+const wasm = await init({ module_or_path: '/yew-ssg/about-page-1fc975454d55021e_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -62,9 +62,32 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-    <link rel="modulepreload" href="/yew-ssg/about-page-1c29e6fd002ea256.js" crossorigin="anonymous" integrity="sha384-nf+kTeqUj2ZCeKRfnNkqBm5S0Fb0ITSwHawwuYjG5LvMh/ZZIgrJALd7aMOfOPnH"><link rel="preload" href="/yew-ssg/about-page-1c29e6fd002ea256_bg.wasm" crossorigin="anonymous" integrity="sha384-8wBjSrkYdkvcBp8iK4EVT6S+AFskOr0piPy1WtWuHWDbqb1N/UUZHqf5jIyyOq/E" as="fetch" type="application/wasm"></head>
+
+        <style>
+            body {
+                background-color: #f5f5f5;
+                font-family: sans-serif;
+            }
+
+            .test-style {
+                color: red;
+                font-weight: bold;
+            }
+        </style>
+    <link rel="modulepreload" href="/yew-ssg/about-page-1fc975454d55021e.js" crossorigin="anonymous" integrity="sha384-ceYl4mT4aSI8uYaBcTk8TVkNlf1oMI3LHGhRePr9qk6jXNE11AXcxw4MTH9+jnGe"><link rel="preload" href="/yew-ssg/about-page-1fc975454d55021e_bg.wasm" crossorigin="anonymous" integrity="sha384-Gk3aK9hI8E3iGPXGL+IlnQQPKaoCYUGqWS0zr1lYASMvEyXNxRaWyAaYccComdDP" as="fetch" type="application/wasm"></head>
     <body>
+        <style>
+            body {
+                background-color: #f5f5f5;
+                font-family: sans-serif;
+            }
+
+            .test-style {
+                color: red;
+                font-weight: bold;
+            }
+        </style>
         <!-- Default content container - will be populated by Trunk or SSG -->
-        <div id="app"><!--<[about_page::app::App]>--><!--<[yew_ssg_router::static_router::StaticRouter]>--><!--<[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--<[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><nav><ul><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/">Home</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/about">About</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/readme">ReadMe</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg">Yew SSG Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/crate/yew-ssg-router">Yew SSG Router Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--><a href="https://blog.chriamue.de/yew-ssg/404">Not Found</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::Route>]>--></li></ul></nav><main><!--<[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--><!--<[about_page::not_found::NotFoundPage]>--><div class="not-found-container"><h1>404 - Page Not Found</h1><div class="error-details"><p>We couldn't find what you were looking for.</p><p class="navigator-info">Navigator information: <code>Basename: /</code></p><p class="navigator-test">Testing navigator availability: <code>Available</code></p></div><div class="not-found-actions"><button class="back-home-button">Back to Home (Using Navigator)</button></div></div><!--</[about_page::not_found::NotFoundPage]>--><!--</[yew_ssg_router::static_switch::StaticSwitch<about_page::route::Route>]>--></main><!--</[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><!--</[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--</[yew_ssg_router::static_router::StaticRouter]>--><!--</[about_page::app::App]>--></div>
+        <div id="app"><!--<[about_page::app::App]>--><!--<[yew_ssg_router::localized_app::LocalizedApp<about_page::route::LocalizedRoute>]>--><!--<[yew_ssg_router::language_context::LanguageProvider]>--><!--<[yew::context::ContextProvider<yew_ssg_router::language_context::LanguageContext>]>--><!--<[yew_ssg_router::static_router::StaticRouter]>--><!--<[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--<[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><!--<[about_page::app::AppContent]>--><nav><ul><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--><a href="https://blog.chriamue.de/yew-ssg/en">Home</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--><a href="https://blog.chriamue.de/yew-ssg/en/about">About</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--><a href="https://blog.chriamue.de/yew-ssg/en/readme">ReadMe</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--><a href="https://blog.chriamue.de/yew-ssg/en/crate/yew-ssg">Yew SSG Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--><a href="https://blog.chriamue.de/yew-ssg/en/crate/yew-ssg-router">Yew SSG Router Crate</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--></li><li><!--<[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--><a href="https://blog.chriamue.de/yew-ssg/en/404">Not Found</a><!--</[yew_ssg_router::static_link::StaticLink<about_page::route::LocalizedRoute>]>--></li></ul><!--<[about_page::language_selector::LanguageSelector]>--><div class="language-selector"><span class="language-selector__label">Language: </span><div class="language-selector__buttons"><!--<[about_page::language_selector::LanguageButton]>--><button type="button" title="English" aria-pressed="true" class="language-button language-button--active"><span class="language-button__flag">🇬🇧</span><span class="language-button__name">English</span></button><!--</[about_page::language_selector::LanguageButton]>--><!--<[about_page::language_selector::LanguageButton]>--><button type="button" title="Deutsch" aria-pressed="false" class="language-button"><span class="language-button__flag">🇩🇪</span><span class="language-button__name">Deutsch</span></button><!--</[about_page::language_selector::LanguageButton]>--></div></div><!--</[about_page::language_selector::LanguageSelector]>--></nav><main><!--<[yew_ssg_router::localized_switch::LocalizedSwitch<about_page::route::LocalizedRoute>]>--><!--<[about_page::not_found::NotFoundPage]>--><div class="not-found-container"><h1>404 - Page Not Found</h1><div class="error-details"><p>We couldn't find what you were looking for.</p></div><div class="not-found-actions"><button class="back-home-button">Back to Home</button></div></div><!--</[about_page::not_found::NotFoundPage]>--><!--</[yew_ssg_router::localized_switch::LocalizedSwitch<about_page::route::LocalizedRoute>]>--></main><!--</[about_page::app::AppContent]>--><!--</[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><!--</[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--</[yew_ssg_router::static_router::StaticRouter]>--><!--</[yew::context::ContextProvider<yew_ssg_router::language_context::LanguageContext>]>--><!--</[yew_ssg_router::language_context::LanguageProvider]>--><!--</[yew_ssg_router::localized_app::LocalizedApp<about_page::route::LocalizedRoute>]>--><!--</[about_page::app::App]>--></div>
     </body>
 </html>

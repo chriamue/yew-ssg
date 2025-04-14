@@ -15,7 +15,7 @@
 }
 
 body {
-    font-family: var(--font-family);
+    font-family: var(--font-family), serif;
     line-height: 1.6;
     color: var(--text-color);
     background-color: var(--background-color);
@@ -37,13 +37,22 @@ nav {
     padding: 1rem 0;
     border-bottom: 1px solid #eee;
     margin-bottom: 2rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    position: relative;
 }
 
 nav ul {
     list-style: none;
     display: flex;
     justify-content: center;
-    gap: 2rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
 }
 
 nav a {
@@ -280,6 +289,78 @@ h3 {
     padding-bottom: 0.5rem;
 }
 
+/* Language selector styles */
+.language-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    background-color: #f7f7f7;
+    border-radius: 8px;
+    padding: 0.5rem;
+}
+
+.language-selector__label {
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.language-selector__buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.language-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid #e0e0e0;
+    background-color: white;
+    color: var(--text-color);
+    border-radius: 4px;
+    font-family: var(--font-family);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.language-button__flag {
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.language-button__name {
+    font-size: 0.9rem;
+}
+
+.language-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    border-color: #ccc;
+}
+
+.language-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+}
+
+.language-button--active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.language-button--active:hover {
+    background-color: var(--hover-color);
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
     nav ul {
@@ -292,5 +373,31 @@ h3 {
         display: block;
         width: 200px;
         text-align: center;
+    }
+
+    .language-button__name {
+        display: none;
+    }
+
+    .language-button {
+        padding: 0.5rem;
+    }
+
+    .language-button__flag {
+        font-size: 1.5rem;
+    }
+}
+
+/* For devices that prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .language-button:hover {
+        transform: none;
+    }
+
+    nav a::after,
+    nav a,
+    .language-button,
+    .back-home-button {
+        transition: none;
     }
 }
