@@ -51,8 +51,8 @@
 
         
 <script type="module">
-import init, * as bindings from '/yew-ssg/about-page-116f97a8a9db4f0b.js';
-const wasm = await init({ module_or_path: '/yew-ssg/about-page-116f97a8a9db4f0b_bg.wasm' });
+import init, * as bindings from '/yew-ssg/about-page-b72de2a7f02d85cd.js';
+const wasm = await init({ module_or_path: '/yew-ssg/about-page-b72de2a7f02d85cd_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -73,7 +73,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 font-weight: bold;
             }
         </style>
-    <link rel="modulepreload" href="/yew-ssg/about-page-116f97a8a9db4f0b.js" crossorigin="anonymous" integrity="sha384-aE5+c2HBGa1OP6hEVOH4iwFVz8XrPxt59qyE47VMY9KLAWXheBvVb4HZ7/q/IdJM"><link rel="preload" href="/yew-ssg/about-page-116f97a8a9db4f0b_bg.wasm" crossorigin="anonymous" integrity="sha384-pm/SQZmM2Jg2d2CHCcsgwAOqDkBguWhEm4ULJf7eZ6JWMfoG5dMAPBY/pQ0Oi1vi" as="fetch" type="application/wasm"></head>
+    <link rel="modulepreload" href="/yew-ssg/about-page-b72de2a7f02d85cd.js" crossorigin="anonymous" integrity="sha384-aE5+c2HBGa1OP6hEVOH4iwFVz8XrPxt59qyE47VMY9KLAWXheBvVb4HZ7/q/IdJM"><link rel="preload" href="/yew-ssg/about-page-b72de2a7f02d85cd_bg.wasm" crossorigin="anonymous" integrity="sha384-YNAABXpwyrLpbAtQtjbcBsv3M+EGgT/CJJlKzQTvr8CuNUolVvyD6SuSCOSpXa8k" as="fetch" type="application/wasm"></head>
     <body>
         <style>
             body {
@@ -100,6 +100,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 <li>🎯 Advanced attribute-based templating system</li>
 <li>🧩 Extensible generator plugin system</li>
 <li>🔍 Built-in SEO generators (meta tags, Open Graph, Twitter Cards)</li>
+<li>🌐 Internationalization and localization support</li>
 <li>🤖 Robots meta tag support</li>
 <li>🔀 Flexible processing pipeline</li>
 </ul>
@@ -187,6 +188,84 @@ async fn main() {
     println!(&quot;✅ Static site generated successfully!&quot;);
 }
 </code></pre>
+<h2>Localization Support</h2>
+<p>The <code>yew-ssg</code> package includes robust support for building multilingual sites using different approaches:</p>
+<h3>Using the Localized Route Macro</h3>
+<p>The easiest way to add localization to your routes is using the <code>impl_localized_route!</code> macro:</p>
+<pre><code class="language-rust">use yew_router::prelude::*;
+use strum_macros::EnumIter;
+
+// First, define your base routes
+#[derive(Clone, Routable, PartialEq, Debug, EnumIter, Default)]
+pub enum Route {
+    #[at(&quot;/&quot;)]
+    #[default]
+    Home,
+    #[at(&quot;/about&quot;)]
+    About,
+    // ... more routes
+}
+
+// Define your supported languages
+pub const SUPPORTED_LANGUAGES: &amp;[&amp;str] = &amp;[&quot;en&quot;, &quot;de&quot;, &quot;fr&quot;];
+pub const DEFAULT_LANGUAGE: &amp;str = &quot;en&quot;;
+
+// Generate the LocalizedRoute type with a single macro call
+impl_localized_route!(Route, LocalizedRoute, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE);
+</code></pre>
+<h3>Using the LocalizedRoutable Derive Macro</h3>
+<p>Alternatively, you can use the derive macro for even simpler implementation:</p>
+<pre><code class="language-rust">use yew_router::prelude::*;
+use strum_macros::EnumIter;
+use yew_ssg_router_macros::LocalizedRoutable;
+
+#[derive(Clone, Routable, PartialEq, Debug, EnumIter, Default, LocalizedRoutable)]
+#[localized(
+    languages = [&quot;en&quot;, &quot;de&quot;, &quot;fr&quot;],
+    default = &quot;en&quot;,
+    wrapper = &quot;LocalizedRoute&quot;
+)]
+pub enum Route {
+    #[at(&quot;/&quot;)]
+    #[default]
+    Home,
+    #[at(&quot;/about&quot;)]
+    About,
+}
+</code></pre>
+<h3>Using Localized Routes</h3>
+<p>The localized routes work seamlessly with the <code>LocalizedApp</code> and <code>LocalizedSwitch</code> components:</p>
+<pre><code class="language-rust">#[function_component(App)]
+pub fn app() -&gt; Html {
+    html! {
+        &lt;LocalizedApp&lt;LocalizedRoute&gt;&gt;
+            &lt;nav&gt;
+                // Example link with localization
+                &lt;Link&lt;LocalizedRoute&gt; to={LocalizedRoute::from_route(Route::Home, Some(&quot;en&quot;))}&gt;
+                    { &quot;Home&quot; }
+                &lt;/Link&lt;LocalizedRoute&gt;&gt;
+            &lt;/nav&gt;
+
+            // Switch that handles both localized and non-localized routes
+            &lt;LocalizedSwitch&lt;LocalizedRoute&gt; render={switch_route} /&gt;
+        &lt;/LocalizedApp&lt;LocalizedRoute&gt;&gt;
+    }
+}
+</code></pre>
+<h3>Language Negotiation</h3>
+<p>For browser-based language detection, you can use the <code>LanguageNegotiator</code>:</p>
+<pre><code class="language-rust">use yew_router::prelude::*;
+
+// Create a language negotiator
+let negotiator = LanguageNegotiator::from_static(
+    &amp;[&quot;en&quot;, &quot;de&quot;, &quot;fr&quot;],
+    &quot;en&quot; // default
+);
+
+// In your app, detect user's preferred language
+let accept_language = get_accept_language_header();
+let best_language = negotiator.negotiate_from_header(accept_language);
+</code></pre>
 <h2>Template System</h2>
 <h3>Basic Template Variables ✨</h3>
 <p>Use double curly braces for variable substitution:</p>
@@ -270,6 +349,8 @@ async fn main() {
 <li><code>TwitterCardGenerator</code>: Twitter Card meta tags</li>
 <li><code>RobotsMetaGenerator</code>: Robots meta tag</li>
 <li><code>TitleGenerator</code>: HTML title tag</li>
+<li><code>CanonicalLinkGenerator</code>: Canonical and alternate language links</li>
+<li><code>JsonLdGenerator</code>: JSON-LD structured data for rich search results</li>
 </ul>
 <p>Example configuration:</p>
 <pre><code class="language-rust">let config = SsgConfigBuilder::new()
@@ -364,7 +445,7 @@ impl Generator for CustomGenerator {
 <li>Fork the project for your own needs</li>
 </ul>
 <h2>License 📄</h2>
-<p>This project is licensed under the MIT License - see the LICENSE file for details.</p>
+<p>This project is licensed under the MIT License - see the <a href="LICENSE">LICENSE</a> file for details.</p>
 <!--</#>--></div></div><!--</[about_page::readme::ReadmePage]>--><!--</[yew_ssg_router::localized_switch::LocalizedSwitch<about_page::route::LocalizedRoute>]>--></main><!--</[about_page::app::AppContent]>--><!--</[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><!--</[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--</[yew_ssg_router::static_router::StaticRouter]>--><!--</[yew::context::ContextProvider<yew_ssg_router::language_context::LanguageContext>]>--><!--</[yew_ssg_router::language_context::LanguageProvider]>--><!--</[yew_ssg_router::localized_app::LocalizedApp<about_page::route::LocalizedRoute>]>--><!--</[about_page::app::App]>--></div>
     </body>
 </html>
