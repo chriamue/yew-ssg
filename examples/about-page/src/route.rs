@@ -1,11 +1,12 @@
-use std::collections::HashMap;
-use std::iter::FusedIterator;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use yew_router::prelude::*;
-use yew_router::LocalizedRoutable;
 
-#[derive(Clone, Routable, PartialEq, Debug, EnumIter)]
+pub const SUPPORTED_LANGUAGES: &[&str] = &["en", "de"];
+pub const DEFAULT_LANGUAGE: &str = "en";
+
+#[derive(Clone, Routable, PartialEq, Debug, EnumIter, LocalizedRoutable)]
+#[localized(languages = ["en", "de"], default = "en", wrapper = "LocalizedRoute")]
 pub enum Route {
     #[at("/")]
     Home,
@@ -20,229 +21,188 @@ pub enum Route {
     NotFound,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum LocalizedRoute {
-    Default(Route),
-    Localized { lang: String, route: Route },
-}
-
-impl Default for LocalizedRoute {
-    fn default() -> Self {
-        LocalizedRoute::Default(Route::Home)
-    }
-}
-
-pub const SUPPORTED_LANGUAGES: &[&str] = &["en", "de"];
-pub const DEFAULT_LANGUAGE: &str = "en";
-
-impl LocalizedRoutable for LocalizedRoute {
-    type BaseRoute = Route;
-
-    fn get_lang(&self) -> Option<String> {
-        match self {
-            LocalizedRoute::Default(_) => None,
-            LocalizedRoute::Localized { lang, .. } => Some(Self::validate_lang(lang)),
-        }
-    }
-
-    fn get_route(&self) -> &Self::BaseRoute {
-        match self {
-            LocalizedRoute::Default(route) => route,
-            LocalizedRoute::Localized { route, .. } => route,
-        }
-    }
-
-    fn from_route(route: Self::BaseRoute, lang: Option<&str>) -> Self {
-        match lang {
-            Some(lang) if Self::supported_languages().contains(&lang) => {
-                LocalizedRoute::Localized {
-                    lang: lang.to_string(),
-                    route,
-                }
-            }
-            _ => LocalizedRoute::Default(route),
-        }
-    }
-
-    fn validate_lang(lang: &str) -> String {
-        if Self::supported_languages().contains(&lang) {
-            lang.to_string()
-        } else {
-            Self::default_language().to_string()
-        }
-    }
-
-    fn supported_languages() -> &'static [&'static str] {
-        SUPPORTED_LANGUAGES
-    }
-
-    fn default_language() -> &'static str {
-        DEFAULT_LANGUAGE
-    }
-}
-
-impl Routable for LocalizedRoute {
-    fn from_path(path: &str, params: &HashMap<&str, &str>) -> Option<Self> {
-        let parts: Vec<&str> = path.trim_matches('/').split('/').collect();
-
-        if parts.is_empty() {
-            return Some(LocalizedRoute::Default(Route::Home));
-        }
-
-        let first_part = parts[0];
-        if SUPPORTED_LANGUAGES.contains(&first_part) {
-            // This is a localized route
-            let lang = first_part.to_string();
-            let remaining = if parts.len() > 1 {
-                format!("/{}", parts[1..].join("/"))
-            } else {
-                "/".to_string()
-            };
-
-            Route::from_path(&remaining, params)
-                .map(|route| LocalizedRoute::Localized { lang, route })
-        } else {
-            // This is a default route
-            Route::from_path(path, params).map(LocalizedRoute::Default)
-        }
-    }
-
-    fn to_path(&self) -> String {
-        match self {
-            LocalizedRoute::Default(route) => route.to_path(),
-            LocalizedRoute::Localized { lang, route } => {
-                let route_path = route.to_path();
-                if route_path == "/" {
-                    format!("/{}", lang)
-                } else {
-                    format!("/{}{}", lang, route_path)
-                }
-            }
-        }
-    }
-
-    fn routes() -> Vec<&'static str> {
-        let mut routes = Route::routes();
-
-        // Add language prefixed routes
-        for &lang in SUPPORTED_LANGUAGES {
-            for route in Route::routes() {
-                let localized_route = if route == "/" {
-                    format!("/{}", lang)
-                } else {
-                    format!("/{}{}", lang, route)
-                };
-
-                // Leak to get static lifetime
-                let localized_route = Box::leak(localized_route.into_boxed_str());
-                routes.push(localized_route);
-            }
-        }
-
-        routes
-    }
-
-    fn not_found_route() -> Option<Self> {
-        Some(LocalizedRoute::Default(Route::NotFound))
-    }
-
-    fn recognize(pathname: &str) -> Option<Self> {
-        let parts: Vec<&str> = pathname.trim_matches('/').split('/').collect();
-        if parts.is_empty() {
-            return Some(LocalizedRoute::Default(Route::Home));
-        }
-
-        let first_part = parts[0];
-        if SUPPORTED_LANGUAGES.contains(&first_part) {
-            // This is a localized route
-            let lang = first_part.to_string();
-            let remaining = if parts.len() > 1 {
-                format!("/{}", parts[1..].join("/"))
-            } else {
-                "/".to_string()
-            };
-
-            Route::recognize(&remaining).map(|route| LocalizedRoute::Localized { lang, route })
-        } else {
-            // This is a default route
-            Route::recognize(pathname).map(LocalizedRoute::Default)
-        }
-    }
-}
-#[derive(Clone)]
-pub struct LocalizedRouteIter {
-    items: Vec<LocalizedRoute>,
-    position: usize,
-}
-
-impl Iterator for LocalizedRouteIter {
-    type Item = LocalizedRoute;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.position < self.items.len() {
-            let item = self.items[self.position].clone();
-            self.position += 1;
-            Some(item)
-        } else {
-            None
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.items.len().saturating_sub(self.position);
-        (remaining, Some(remaining))
-    }
-}
-
-impl ExactSizeIterator for LocalizedRouteIter {
-    fn len(&self) -> usize {
-        self.items.len().saturating_sub(self.position)
-    }
-}
-
-impl DoubleEndedIterator for LocalizedRouteIter {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.position < self.items.len() {
-            let last = self.items.len() - 1;
-            let item = self.items[last].clone();
-            self.items.truncate(last);
-            Some(item)
-        } else {
-            None
-        }
-    }
-}
-
-impl FusedIterator for LocalizedRouteIter {}
-
-// Implement IntoEnumIterator for LocalizedRoute
-impl IntoEnumIterator for LocalizedRoute {
-    type Iterator = LocalizedRouteIter;
-
-    fn iter() -> Self::Iterator {
-        let mut items = Vec::new();
-
-        // Generate all variants: first Default then Localized for each route
-        for route in Route::iter() {
-            // Add default variant
-            items.push(LocalizedRoute::Default(route.clone()));
-
-            // Add localized variants for each language
-            for &lang in SUPPORTED_LANGUAGES {
-                items.push(LocalizedRoute::Localized {
-                    lang: lang.to_string(),
-                    route: route.clone(),
-                });
-            }
-        }
-
-        LocalizedRouteIter { items, position: 0 }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use strum::IntoEnumIterator;
+
+    #[test]
+    fn test_localized_routes() {
+        let localized_routes = LocalizedRoute::routes();
+
+        // The count should be: (number of routes) * (1 default + number of languages)
+        let expected_count = Route::routes().len() * (1 + SUPPORTED_LANGUAGES.len());
+        assert_eq!(localized_routes.len(), expected_count);
+
+        // Check that we have routes for each language
+        for &lang in SUPPORTED_LANGUAGES {
+            // Check for a home route for each language
+            let localized_home = format!("/{}{}", lang, "/");
+            let has_localized_home = localized_routes
+                .iter()
+                .any(|&route| route == localized_home);
+            assert!(
+                has_localized_home,
+                "Missing localized home route for {}",
+                lang
+            );
+        }
+
+        // Test route recognition
+        assert_eq!(
+            LocalizedRoute::recognize("/").map(|r| r.get_route().clone()),
+            Some(Route::Home)
+        );
+
+        assert_eq!(
+            LocalizedRoute::recognize("/de").map(|r| {
+                if let LocalizedRoute::Localized { lang, route } = r {
+                    assert_eq!(lang, "de");
+                    route
+                } else {
+                    panic!("Expected localized route, got {:?}", r);
+                }
+            }),
+            Some(Route::Home)
+        );
+
+        assert_eq!(
+            LocalizedRoute::recognize("/en").map(|r| {
+                if let LocalizedRoute::Localized { lang, route } = r {
+                    assert_eq!(lang, "en");
+                    route
+                } else {
+                    panic!("Expected localized route, got {:?}", r);
+                }
+            }),
+            Some(Route::Home)
+        );
+    }
+
+    #[test]
+    fn test_localized_route() {
+        // Test construction and getters
+        let route = LocalizedRoute::from_route(Route::Home, None);
+        assert!(matches!(route, LocalizedRoute::Default(_)));
+        assert_eq!(route.get_lang(), None);
+        assert_eq!(route.get_route(), &Route::Home);
+
+        let route = LocalizedRoute::from_route(Route::Home, Some("de"));
+        assert!(matches!(route, LocalizedRoute::Localized { ref lang, .. } if lang == "de"));
+        assert_eq!(route.get_lang(), Some("de".to_string()));
+        assert_eq!(route.get_route(), &Route::Home);
+
+        let route = LocalizedRoute::from_route(Route::Home, Some("en"));
+        assert!(matches!(route, LocalizedRoute::Localized { ref lang, .. } if lang == "en"));
+        assert_eq!(route.get_lang(), Some("en".to_string()));
+        assert_eq!(route.get_route(), &Route::Home);
+    }
+
+    #[test]
+    fn test_localized_route_paths() {
+        // Test path generation
+        assert_eq!(LocalizedRoute::from_route(Route::Home, None).to_path(), "/");
+
+        assert_eq!(
+            LocalizedRoute::from_route(Route::Home, Some("en")).to_path(),
+            "/en/"
+        );
+
+        assert_eq!(
+            LocalizedRoute::from_route(Route::Home, Some("de")).to_path(),
+            "/de/"
+        );
+
+        // Test with different route types
+        assert_eq!(
+            LocalizedRoute::from_route(
+                Route::Crate {
+                    id: "123".to_string()
+                },
+                Some("en")
+            )
+            .to_path(),
+            "/en/crate/123"
+        );
+
+        // Note: We don't have a SearchWithQuery route in this example
+        // so I'm using Crate instead for this test
+        assert_eq!(
+            LocalizedRoute::from_route(
+                Route::Crate {
+                    id: "test".to_string()
+                },
+                Some("de")
+            )
+            .to_path(),
+            "/de/crate/test"
+        );
+    }
+
+    #[test]
+    fn test_route_recognition() {
+        // Test recognition of paths
+        let recognized = LocalizedRoute::recognize("/");
+        assert!(matches!(
+            recognized,
+            Some(LocalizedRoute::Default(Route::Home))
+        ));
+
+        let recognized = LocalizedRoute::recognize("/de");
+        assert!(
+            matches!(recognized, Some(LocalizedRoute::Localized { lang, route: Route::Home }) if lang == "de")
+        );
+
+        let recognized = LocalizedRoute::recognize("/en/crate/123");
+        assert!(matches!(
+            recognized,
+            Some(LocalizedRoute::Localized {
+                lang,
+                route: Route::Crate { id }
+            }) if lang == "en" && id == "123"
+        ));
+
+        // Test invalid language
+        let recognized = LocalizedRoute::recognize("/xx/about");
+        assert_eq!(recognized, Some(LocalizedRoute::Default(Route::NotFound)));
+    }
+
+    #[test]
+    fn test_invalid_language_handling() {
+        // Test that invalid languages are validated properly
+        assert_eq!(LocalizedRoute::validate_lang("xx"), "en");
+        assert_eq!(LocalizedRoute::validate_lang("de"), "de");
+
+        // Test from_route with invalid language
+        let route = LocalizedRoute::from_route(Route::Home, Some("invalid"));
+        assert!(matches!(route, LocalizedRoute::Default(Route::Home)));
+    }
+
+    #[test]
+    fn test_localized_router_iter() {
+        // Test the iterator implementation
+        let routes: Vec<LocalizedRoute> = LocalizedRoute::iter().collect();
+
+        // Calculate expected count
+        let expected_count = Route::iter().count() * (1 + SUPPORTED_LANGUAGES.len());
+        assert_eq!(routes.len(), expected_count);
+
+        // Test that we have both default and localized routes
+        let default_routes_count = routes
+            .iter()
+            .filter(|r| matches!(r, LocalizedRoute::Default(_)))
+            .count();
+        assert_eq!(default_routes_count, Route::iter().count());
+
+        let localized_routes_count = routes
+            .iter()
+            .filter(|r| matches!(r, LocalizedRoute::Localized { .. }))
+            .count();
+        assert_eq!(
+            localized_routes_count,
+            Route::iter().count() * SUPPORTED_LANGUAGES.len()
+        );
+    }
 
     #[test]
     fn test_localized_route_iterator() {
@@ -259,7 +219,7 @@ mod tests {
         for route in Route::iter() {
             let has_default = routes
                 .iter()
-                .any(|r| matches!(r, LocalizedRoute::Default(r_inner) if r_inner == &route));
+                .any(|r| matches!(r, LocalizedRoute::Default(r_inner) if *r_inner == route));
             assert!(has_default, "Missing default route: {:?}", route);
         }
 
@@ -268,7 +228,7 @@ mod tests {
             for &lang in SUPPORTED_LANGUAGES {
                 let has_lang = routes.iter().any(|r| {
                     matches!(r, LocalizedRoute::Localized { lang: l, route: r_inner }
-                             if l == lang && r_inner == &route)
+                             if l == lang && *r_inner == route)
                 });
                 assert!(has_lang, "Missing {:?} route for language {}", route, lang);
             }
