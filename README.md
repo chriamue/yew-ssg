@@ -12,6 +12,7 @@ A static site generator for Yew applications that helps you pre-render your Yew 
 - 🎯 Advanced attribute-based templating system
 - 🧩 Extensible generator plugin system
 - 🔍 Built-in SEO generators (meta tags, Open Graph, Twitter Cards)
+- 🌐 Internationalization and localization support
 - 🤖 Robots meta tag support
 - 🔀 Flexible processing pipeline
 
@@ -115,6 +116,102 @@ async fn main() {
 
     println!("✅ Static site generated successfully!");
 }
+```
+
+## Localization Support
+
+The `yew-ssg` package includes robust support for building multilingual sites using different approaches:
+
+### Using the Localized Route Macro
+
+The easiest way to add localization to your routes is using the `impl_localized_route!` macro:
+
+```rust
+use yew_router::prelude::*;
+use strum_macros::EnumIter;
+
+// First, define your base routes
+#[derive(Clone, Routable, PartialEq, Debug, EnumIter, Default)]
+pub enum Route {
+    #[at("/")]
+    #[default]
+    Home,
+    #[at("/about")]
+    About,
+    // ... more routes
+}
+
+// Define your supported languages
+pub const SUPPORTED_LANGUAGES: &[&str] = &["en", "de", "fr"];
+pub const DEFAULT_LANGUAGE: &str = "en";
+
+// Generate the LocalizedRoute type with a single macro call
+impl_localized_route!(Route, LocalizedRoute, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE);
+```
+
+### Using the LocalizedRoutable Derive Macro
+
+Alternatively, you can use the derive macro for even simpler implementation:
+
+```rust
+use yew_router::prelude::*;
+use strum_macros::EnumIter;
+use yew_ssg_router_macros::LocalizedRoutable;
+
+#[derive(Clone, Routable, PartialEq, Debug, EnumIter, Default, LocalizedRoutable)]
+#[localized(
+    languages = ["en", "de", "fr"],
+    default = "en",
+    wrapper = "LocalizedRoute"
+)]
+pub enum Route {
+    #[at("/")]
+    #[default]
+    Home,
+    #[at("/about")]
+    About,
+}
+```
+
+### Using Localized Routes
+
+The localized routes work seamlessly with the `LocalizedApp` and `LocalizedSwitch` components:
+
+```rust
+#[function_component(App)]
+pub fn app() -> Html {
+    html! {
+        <LocalizedApp<LocalizedRoute>>
+            <nav>
+                // Example link with localization
+                <Link<LocalizedRoute> to={LocalizedRoute::from_route(Route::Home, Some("en"))}>
+                    { "Home" }
+                </Link<LocalizedRoute>>
+            </nav>
+
+            // Switch that handles both localized and non-localized routes
+            <LocalizedSwitch<LocalizedRoute> render={switch_route} />
+        </LocalizedApp<LocalizedRoute>>
+    }
+}
+```
+
+### Language Negotiation
+
+For browser-based language detection, you can use the `LanguageNegotiator`:
+
+```rust
+use yew_router::prelude::*;
+
+// Create a language negotiator
+let negotiator = LanguageNegotiator::from_static(
+    &["en", "de", "fr"],
+    "en" // default
+);
+
+// In your app, detect user's preferred language
+let accept_language = get_accept_language_header();
+let best_language = negotiator.negotiate_from_header(accept_language);
 ```
 
 ## Template System
@@ -223,6 +320,8 @@ yew-ssg includes several built-in generators:
 - `TwitterCardGenerator`: Twitter Card meta tags
 - `RobotsMetaGenerator`: Robots meta tag
 - `TitleGenerator`: HTML title tag
+- `CanonicalLinkGenerator`: Canonical and alternate language links
+- `JsonLdGenerator`: JSON-LD structured data for rich search results
 
 Example configuration:
 
@@ -330,4 +429,4 @@ While this is primarily a personal project, feedback and contributions are welco
 
 ## License 📄
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
