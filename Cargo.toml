@@ -1,5 +1,10 @@
 [workspace]
-members = ["yew-ssg", "examples/about-page", "yew-ssg-router"]
+members = [
+    "yew-ssg",
+    "examples/about-page",
+    "yew-ssg-router",
+    "yew-ssg-router-macros",
+]
 resolver = "2"
 
 [workspace.package]
@@ -26,3 +31,4 @@ serde_yaml = "0.9.34"
 yew-ssg = { path = "yew-ssg" }
 yew-ssg-router = { path = "yew-ssg-router" }
 yew_router = { path = "yew-ssg-router", package = "yew-ssg-router" }
+yew-ssg-router-macros = { path = "yew-ssg-router-macros" }
