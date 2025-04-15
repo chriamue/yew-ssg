@@ -8,9 +8,12 @@ mod static_switch;
 pub mod utils;
 
 mod language_context;
+mod language_negotiation;
 mod localized_app;
 mod localized_link;
 mod localized_routable;
+mod localized_route_iter;
+mod localized_route_macro;
 mod localized_switch;
 mod route_language;
 
@@ -20,23 +23,31 @@ pub use static_router::StaticRouter;
 pub use static_switch::StaticSwitch;
 
 pub use language_context::{use_language, LanguageContext, LanguageProvider, TextDirection};
+pub use language_negotiation::LanguageNegotiator;
 pub use localized_app::{LocalizedApp, LocalizedAppProps};
 pub use localized_link::{LocalizedLink, LocalizedLinkProps};
 pub use localized_routable::LocalizedRoutable;
+pub use localized_route_iter::LocalizedRouteIter;
 pub use localized_switch::{LocalizedSwitch, LocalizedSwitchProps};
 pub use route_language::{use_route_language, RouteLanguageExtractor};
+
+pub use yew_ssg_router_macros::LocalizedRoutable;
 
 pub mod prelude {
     pub use crate::{get_static_path, is_ssg_mode};
 
     // Import necessary types from yew_router without the components we want to replace
+    pub use crate::impl_localized_route;
     pub use crate::language_context::{
         use_language, LanguageContext, LanguageProvider, TextDirection,
     };
+    pub use crate::language_negotiation::LanguageNegotiator;
     pub use crate::localized_app::{LocalizedApp, LocalizedAppProps};
     pub use crate::localized_routable::LocalizedRoutable;
+    pub use crate::localized_route_iter::LocalizedRouteIter;
     pub use crate::route_language::{use_route_language, RouteLanguageExtractor};
     pub use yew_router::prelude::{use_location, use_route, Location, LocationHandle, Routable};
+    pub use yew_ssg_router_macros::LocalizedRoutable;
 
     // Conditionally import the right components based on feature flag
     #[cfg(feature = "ssg")]

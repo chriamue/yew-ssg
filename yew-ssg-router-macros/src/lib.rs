@@ -34,7 +34,7 @@ use syn::{parse_macro_input, DeriveInput, Expr, LitStr};
 ///
 /// The `#[localized(...)]` attribute accepts the following parameters:
 ///
-/// - `languages`: Array of supported language codes (default: `["en"]`)
+/// - `languages`: Array of supported language codes (default: `["en"]`) or a constant like `LANGUAGES`
 /// - `default`: Default language code (default: `"en"`)
 /// - `wrapper`: Name for the generated wrapper enum (default: `"Localized<YourEnum>"`)
 ///
@@ -60,29 +60,26 @@ pub fn derive_localized_routable(input: TokenStream) -> TokenStream {
 
     // Default values
     let mut wrapper_name = format_ident!("Localized{}", base_route_name);
-    let mut languages = vec!["en".to_string()]; // Default language
     let mut default_language = "en".to_string();
+
+    // For storing the languages expression
+    let mut languages_expr: Option<Expr> = None;
+    let mut is_array_literal = false;
 
     // Look for #[localized(...)] attributes to customize the implementation
     for attr in &input.attrs {
         if attr.path().is_ident("localized") {
             attr.parse_nested_meta(|meta| {
                 if meta.path.is_ident("languages") {
-                    // Parse languages array
-                    if let Ok(expr) = meta.value()?.parse::<Expr>() {
-                        if let Expr::Array(expr_array) = expr {
-                            // Clear default and add parsed languages
-                            languages.clear();
+                    // Parse languages expression
+                    let expr = meta.value()?.parse::<Expr>()?;
 
-                            for expr in expr_array.elems {
-                                if let Expr::Lit(lit_expr) = expr {
-                                    if let syn::Lit::Str(lit_str) = lit_expr.lit {
-                                        languages.push(lit_str.value());
-                                    }
-                                }
-                            }
-                        }
+                    // Check if it's an array literal
+                    if let Expr::Array(_) = &expr {
+                        is_array_literal = true;
                     }
+
+                    languages_expr = Some(expr);
                 } else if meta.path.is_ident("default") {
                     // Parse default language
                     if let Ok(lit) = meta.value()?.parse::<LitStr>() {
@@ -103,11 +100,21 @@ pub fn derive_localized_routable(input: TokenStream) -> TokenStream {
         }
     }
 
-    // Generate string literals for the languages
-    let lang_literals = languages.iter().map(|lang| {
-        let lang_str = lang.as_str();
-        quote! { #lang_str }
-    });
+    // Prepare the languages expression for the supported_languages method
+    let supported_languages_expr = match languages_expr {
+        Some(expr) if is_array_literal => {
+            // If it's an array literal, we need to add a reference to it
+            quote! { &(#expr) }
+        }
+        Some(expr) => {
+            // If it's a constant or variable reference, use it directly
+            quote! { #expr }
+        }
+        None => {
+            // Default to ["en"] array
+            quote! { &["en"] }
+        }
+    };
 
     // Generate the default language as string literal
     let default_lang_lit = default_language.as_str();
@@ -166,7 +173,7 @@ pub fn derive_localized_routable(input: TokenStream) -> TokenStream {
             }
 
             fn supported_languages() -> &'static [&'static str] {
-                &[#(#lang_literals),*]
+                #supported_languages_expr
             }
 
             fn default_language() -> &'static str {
@@ -195,7 +202,7 @@ pub fn derive_localized_routable(input: TokenStream) -> TokenStream {
                     Self::Localized { lang, route } => {
                         let route_path = route.to_path();
                         if route_path == "/" {
-                            format!("/{}", lang)
+                            format!("/{}/", lang)
                         } else {
                             format!("/{}{}", lang, route_path)
                         }
@@ -210,7 +217,7 @@ pub fn derive_localized_routable(input: TokenStream) -> TokenStream {
                 for &lang in Self::supported_languages() {
                     for route in <#base_route_name as Routable>::routes() {
                         let localized_route = if route == "/" {
-                            format!("/{}", lang)
+                            format!("/{}/", lang)
                         } else {
                             format!("/{}{}", lang, route)
                         };
