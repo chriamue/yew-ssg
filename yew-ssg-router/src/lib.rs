@@ -1,6 +1,7 @@
 pub use yew_router::*;
 pub use yew_router_macro::Routable;
 
+pub mod hooks;
 mod static_link;
 mod static_navigator;
 mod static_router;
@@ -17,6 +18,7 @@ mod localized_route_macro;
 mod localized_switch;
 mod route_language;
 
+pub use hooks::*;
 pub use static_link::StaticLink;
 pub use static_navigator::{use_navigator, StaticNavigator, StaticNavigatorProvider};
 pub use static_router::StaticRouter;
@@ -37,6 +39,7 @@ pub mod prelude {
     pub use crate::{get_static_path, is_ssg_mode};
 
     // Import necessary types from yew_router without the components we want to replace
+    pub use crate::hooks::*;
     pub use crate::impl_localized_route;
     pub use crate::language_context::{
         use_language, LanguageContext, LanguageProvider, TextDirection,
