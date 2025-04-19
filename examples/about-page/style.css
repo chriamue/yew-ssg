@@ -361,6 +361,22 @@ h3 {
     background-color: var(--hover-color);
 }
 
+.feature-item {
+    cursor: pointer;
+    transition: background 0.2s;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+.feature-item:hover {
+    background: #f0f8ff;
+}
+.active-feature {
+    background: #e0f7fa;
+    font-weight: bold;
+    border: 1px solid #4a90e2;
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
     nav ul {
