@@ -31,24 +31,48 @@ impl Generator for OpenGraphGenerator {
             "open_graph" => {
                 let mut tags = String::new();
 
-                // Basic OG tags
-                tags.push_str("<meta property=\"og:type\" content=\"website\">\n");
+                // Get OG type from metadata or default to "website"
+                let og_type = metadata
+                    .get("og:type")
+                    .cloned()
+                    .unwrap_or_else(|| "website".to_string());
+                tags.push_str(&format!(
+                    "<meta property=\"og:type\" content=\"{}\">\n",
+                    og_type
+                ));
 
-                let title = metadata.get("title").cloned().unwrap_or_default();
+                // Title - use og:title if available, then title, then empty
+                let title = metadata
+                    .get("og:title")
+                    .or_else(|| metadata.get("title"))
+                    .cloned()
+                    .unwrap_or_default();
                 tags.push_str(&format!(
                     "<meta property=\"og:title\" content=\"{}\">\n",
                     title
                 ));
 
-                let description = metadata.get("description").cloned().unwrap_or_default();
+                // Description - use og:description if available, then description, then empty
+                let description = metadata
+                    .get("og:description")
+                    .or_else(|| metadata.get("description"))
+                    .cloned()
+                    .unwrap_or_default();
                 tags.push_str(&format!(
                     "<meta property=\"og:description\" content=\"{}\">\n",
                     description
                 ));
 
-                let url = metadata.get("url").cloned().unwrap_or_default();
+                // URL - use og:url if available, then url, then canonical
+                let url = metadata
+                    .get("og:url")
+                    .or_else(|| metadata.get("url"))
+                    .or_else(|| metadata.get("canonical"))
+                    .cloned()
+                    .unwrap_or_default();
                 tags.push_str(&format!("<meta property=\"og:url\" content=\"{}\">\n", url));
 
+                // Image - use og:image if available, then default
                 let image = metadata
                     .get("og:image")
                     .cloned()
@@ -58,17 +82,57 @@ impl Generator for OpenGraphGenerator {
                     image
                 ));
 
+                // Site name - use og:site_name if available, then site_name, then default
+                let site_name = metadata
+                    .get("og:site_name")
+                    .or_else(|| metadata.get("site_name"))
+                    .cloned()
+                    .unwrap_or_else(|| self.site_name.clone());
                 tags.push_str(&format!(
                     "<meta property=\"og:site_name\" content=\"{}\">\n",
-                    self.site_name
+                    site_name
                 ));
+
+                // Optional locale if available
+                if let Some(locale) = metadata.get("og:locale").or_else(|| metadata.get("locale")) {
+                    tags.push_str(&format!(
+                        "<meta property=\"og:locale\" content=\"{}\">\n",
+                        locale
+                    ));
+                }
+
+                // Optional image dimensions if available
+                if let Some(width) = metadata.get("og:image:width") {
+                    tags.push_str(&format!(
+                        "<meta property=\"og:image:width\" content=\"{}\">\n",
+                        width
+                    ));
+                }
+
+                if let Some(height) = metadata.get("og:image:height") {
+                    tags.push_str(&format!(
+                        "<meta property=\"og:image:height\" content=\"{}\">\n",
+                        height
+                    ));
+                }
+
+                if let Some(alt) = metadata.get("og:image:alt") {
+                    tags.push_str(&format!(
+                        "<meta property=\"og:image:alt\" content=\"{}\">\n",
+                        alt
+                    ));
+                }
 
                 Ok(tags)
             }
 
-            // Individual OpenGraph properties
+            // Individual OpenGraph properties with metadata priority
             "og:title" => {
-                let title = metadata.get("title").cloned().unwrap_or_default();
+                let title = metadata
+                    .get("og:title")
+                    .or_else(|| metadata.get("title"))
+                    .cloned()
+                    .unwrap_or_default();
                 Ok(format!(
                     "<meta property=\"og:title\" content=\"{}\">\n",
                     title
@@ -76,7 +140,11 @@ impl Generator for OpenGraphGenerator {
             }
 
             "og:description" => {
-                let description = metadata.get("description").cloned().unwrap_or_default();
+                let description = metadata
+                    .get("og:description")
+                    .or_else(|| metadata.get("description"))
+                    .cloned()
+                    .unwrap_or_default();
                 Ok(format!(
                     "<meta property=\"og:description\" content=\"{}\">\n",
                     description
@@ -84,7 +152,12 @@ impl Generator for OpenGraphGenerator {
             }
 
             "og:url" => {
-                let url = metadata.get("url").cloned().unwrap_or_default();
+                let url = metadata
+                    .get("og:url")
+                    .or_else(|| metadata.get("url"))
+                    .or_else(|| metadata.get("canonical"))
+                    .cloned()
+                    .unwrap_or_default();
                 Ok(format!("<meta property=\"og:url\" content=\"{}\">\n", url))
             }
 
@@ -99,10 +172,17 @@ impl Generator for OpenGraphGenerator {
                 ))
             }
 
-            "og:site_name" => Ok(format!(
-                "<meta property=\"og:site_name\" content=\"{}\">\n",
-                self.site_name
-            )),
+            "og:site_name" => {
+                let site_name = metadata
+                    .get("og:site_name")
+                    .or_else(|| metadata.get("site_name"))
+                    .cloned()
+                    .unwrap_or_else(|| self.site_name.clone());
+                Ok(format!(
+                    "<meta property=\"og:site_name\" content=\"{}\">\n",
+                    site_name
+                ))
+            }
 
             // Unsupported key
             _ => Err(format!("OpenGraphGenerator does not support key: {}", key).into()),
@@ -181,5 +261,56 @@ mod tests {
         assert!(result.contains("<meta property=\"og:url\" content=\"https://example.com/test\">"));
         assert!(result
             .contains("<meta property=\"og:image\" content=\"https://example.com/custom.jpg\">"));
+    }
+
+    #[test]
+    fn test_metadata_priority() {
+        let generator = OpenGraphGenerator {
+            site_name: "Default Site".to_string(),
+            default_image: "https://example.com/default.jpg".to_string(),
+        };
+
+        // Test with both direct and og:-prefixed metadata
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Regular Title".to_string());
+        metadata.insert("og:title".to_string(), "OG Title".to_string());
+        metadata.insert("site_name".to_string(), "Regular Site Name".to_string());
+        metadata.insert("og:site_name".to_string(), "OG Site Name".to_string());
+
+        let result = generator
+            .generate(
+                "open_graph",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+
+        // OG-prefixed values should take priority
+        assert!(result.contains("<meta property=\"og:title\" content=\"OG Title\">"));
+        assert!(result.contains("<meta property=\"og:site_name\" content=\"OG Site Name\">"));
+
+        // Test individual property generators also respect priority
+        let title_result = generator
+            .generate(
+                "og:title",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+        assert!(title_result.contains("<meta property=\"og:title\" content=\"OG Title\">"));
+
+        let site_name_result = generator
+            .generate(
+                "og:site_name",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+        assert!(
+            site_name_result.contains("<meta property=\"og:site_name\" content=\"OG Site Name\">")
+        );
     }
 }
