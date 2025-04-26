@@ -55,9 +55,10 @@ impl Generator for TwitterCardGenerator {
             "twitter_card" => {
                 let mut tags = String::new();
 
-                // Card type
+                // Card type - check both formats (twitter:card and twitter_card)
                 let card_type = metadata
                     .get("twitter:card")
+                    .or_else(|| metadata.get("twitter_card"))
                     .cloned()
                     .unwrap_or_else(|| self.default_card_type.clone());
                 tags.push_str(&format!(
@@ -65,11 +66,26 @@ impl Generator for TwitterCardGenerator {
                     card_type
                 ));
 
-                // Site account
-                if let Some(site) = &self.twitter_site {
+                // Site account - check metadata first, then fall back to default
+                let site = metadata
+                    .get("twitter:site")
+                    .cloned()
+                    .or_else(|| {
+                        // Try to get from twitter_handle in metadata
+                        metadata.get("twitter_handle").map(|handle| {
+                            if handle.starts_with('@') {
+                                handle.clone()
+                            } else {
+                                format!("@{}", handle)
+                            }
+                        })
+                    })
+                    .or_else(|| self.twitter_site.clone());
+
+                if let Some(site_value) = site {
                     tags.push_str(&format!(
                         "<meta name=\"twitter:site\" content=\"{}\">\n",
-                        site
+                        site_value
                     ));
                 }
 
@@ -81,42 +97,72 @@ impl Generator for TwitterCardGenerator {
                     ));
                 }
 
-                // Title (required)
+                // Title (required) - use twitter-specific first, then generic
                 let title = metadata
                     .get("twitter:title")
+                    .or_else(|| metadata.get("og:title"))
                     .or_else(|| metadata.get("title"))
                     .cloned()
                     .unwrap_or_else(|| "".to_string());
-                tags.push_str(&format!(
-                    "<meta name=\"twitter:title\" content=\"{}\">\n",
-                    title
-                ));
 
-                // Description
-                if let Some(description) = metadata
-                    .get("twitter:description")
-                    .or_else(|| metadata.get("description"))
-                {
+                if !title.is_empty() {
                     tags.push_str(&format!(
-                        "<meta name=\"twitter:description\" content=\"{}\">\n",
-                        description
+                        "<meta name=\"twitter:title\" content=\"{}\">\n",
+                        title
                     ));
                 }
 
-                // Image
-                if let Some(image) = metadata.get("twitter:image") {
+                // Description - use twitter-specific first, then generic
+                let description = metadata
+                    .get("twitter:description")
+                    .or_else(|| metadata.get("og:description"))
+                    .or_else(|| metadata.get("description"))
+                    .cloned();
+
+                if let Some(desc) = description {
+                    tags.push_str(&format!(
+                        "<meta name=\"twitter:description\" content=\"{}\">\n",
+                        desc
+                    ));
+                }
+
+                // Image - use twitter-specific first, then open graph, then default
+                let image = metadata
+                    .get("twitter:image")
+                    .or_else(|| metadata.get("og:image"))
+                    .or_else(|| metadata.get("default_image"))
+                    .cloned();
+
+                if let Some(img) = image {
                     tags.push_str(&format!(
                         "<meta name=\"twitter:image\" content=\"{}\">\n",
-                        image
+                        img
                     ));
 
                     // Image alt text (accessibility)
-                    if let Some(alt) = metadata.get("twitter:image:alt") {
+                    let alt_text = metadata
+                        .get("twitter:image:alt")
+                        .or_else(|| metadata.get("og:image:alt"))
+                        .or_else(|| metadata.get("image_alt"))
+                        .cloned();
+
+                    if let Some(alt) = alt_text {
                         tags.push_str(&format!(
                             "<meta name=\"twitter:image:alt\" content=\"{}\">\n",
                             alt
                         ));
                     }
+                }
+
+                // Domain for attribution
+                if let Some(domain) = metadata
+                    .get("twitter:domain")
+                    .or_else(|| metadata.get("domain"))
+                {
+                    tags.push_str(&format!(
+                        "<meta name=\"twitter:domain\" content=\"{}\">\n",
+                        domain
+                    ));
                 }
 
                 // For player cards
@@ -141,6 +187,13 @@ impl Generator for TwitterCardGenerator {
                             height
                         ));
                     }
+
+                    if let Some(stream) = metadata.get("twitter:player:stream") {
+                        tags.push_str(&format!(
+                            "<meta name=\"twitter:player:stream\" content=\"{}\">\n",
+                            stream
+                        ));
+                    }
                 }
 
                 // For app cards
@@ -156,6 +209,21 @@ impl Generator for TwitterCardGenerator {
                     if let Some(name) = metadata.get("twitter:app:name:iphone") {
                         tags.push_str(&format!(
                             "<meta name=\"twitter:app:name:iphone\" content=\"{}\">\n",
+                            name
+                        ));
+                    }
+
+                    // iPad app details
+                    if let Some(id) = metadata.get("twitter:app:id:ipad") {
+                        tags.push_str(&format!(
+                            "<meta name=\"twitter:app:id:ipad\" content=\"{}\">\n",
+                            id
+                        ));
+                    }
+
+                    if let Some(name) = metadata.get("twitter:app:name:ipad") {
+                        tags.push_str(&format!(
+                            "<meta name=\"twitter:app:name:ipad\" content=\"{}\">\n",
                             name
                         ));
                     }
@@ -179,10 +247,11 @@ impl Generator for TwitterCardGenerator {
                 Ok(tags)
             }
 
-            // Individual Twitter Card properties
+            // Individual Twitter Card properties with improved fallbacks
             "twitter:card" => {
                 let card_type = metadata
                     .get("twitter:card")
+                    .or_else(|| metadata.get("twitter_card"))
                     .cloned()
                     .unwrap_or_else(|| self.default_card_type.clone());
 
@@ -193,10 +262,25 @@ impl Generator for TwitterCardGenerator {
             }
 
             "twitter:site" => {
-                if let Some(site) = &self.twitter_site {
+                let site = metadata
+                    .get("twitter:site")
+                    .cloned()
+                    .or_else(|| {
+                        // Try to get from twitter_handle in metadata
+                        metadata.get("twitter_handle").map(|handle| {
+                            if handle.starts_with('@') {
+                                handle.clone()
+                            } else {
+                                format!("@{}", handle)
+                            }
+                        })
+                    })
+                    .or_else(|| self.twitter_site.clone());
+
+                if let Some(site_value) = site {
                     Ok(format!(
                         "<meta name=\"twitter:site\" content=\"{}\">\n",
-                        site
+                        site_value
                     ))
                 } else {
                     Ok("".to_string())
@@ -217,24 +301,32 @@ impl Generator for TwitterCardGenerator {
             "twitter:title" => {
                 let title = metadata
                     .get("twitter:title")
+                    .or_else(|| metadata.get("og:title"))
                     .or_else(|| metadata.get("title"))
                     .cloned()
                     .unwrap_or_else(|| "".to_string());
 
-                Ok(format!(
-                    "<meta name=\"twitter:title\" content=\"{}\">\n",
-                    title
-                ))
+                if !title.is_empty() {
+                    Ok(format!(
+                        "<meta name=\"twitter:title\" content=\"{}\">\n",
+                        title
+                    ))
+                } else {
+                    Ok("".to_string())
+                }
             }
 
             "twitter:description" => {
-                if let Some(description) = metadata
+                let description = metadata
                     .get("twitter:description")
+                    .or_else(|| metadata.get("og:description"))
                     .or_else(|| metadata.get("description"))
-                {
+                    .cloned();
+
+                if let Some(desc) = description {
                     Ok(format!(
                         "<meta name=\"twitter:description\" content=\"{}\">\n",
-                        description
+                        desc
                     ))
                 } else {
                     Ok("".to_string())
@@ -242,10 +334,16 @@ impl Generator for TwitterCardGenerator {
             }
 
             "twitter:image" => {
-                if let Some(image) = metadata.get("twitter:image") {
+                let image = metadata
+                    .get("twitter:image")
+                    .or_else(|| metadata.get("og:image"))
+                    .or_else(|| metadata.get("default_image"))
+                    .cloned();
+
+                if let Some(img) = image {
                     Ok(format!(
                         "<meta name=\"twitter:image\" content=\"{}\">\n",
-                        image
+                        img
                     ))
                 } else {
                     Ok("".to_string())
@@ -253,10 +351,30 @@ impl Generator for TwitterCardGenerator {
             }
 
             "twitter:image:alt" => {
-                if let Some(alt) = metadata.get("twitter:image:alt") {
+                let alt_text = metadata
+                    .get("twitter:image:alt")
+                    .or_else(|| metadata.get("og:image:alt"))
+                    .or_else(|| metadata.get("image_alt"))
+                    .cloned();
+
+                if let Some(alt) = alt_text {
                     Ok(format!(
                         "<meta name=\"twitter:image:alt\" content=\"{}\">\n",
                         alt
+                    ))
+                } else {
+                    Ok("".to_string())
+                }
+            }
+
+            "twitter:domain" => {
+                if let Some(domain) = metadata
+                    .get("twitter:domain")
+                    .or_else(|| metadata.get("domain"))
+                {
+                    Ok(format!(
+                        "<meta name=\"twitter:domain\" content=\"{}\">\n",
+                        domain
                     ))
                 } else {
                     Ok("".to_string())
@@ -297,6 +415,17 @@ impl Generator for TwitterCardGenerator {
                 }
             }
 
+            "twitter:player:stream" => {
+                if let Some(stream) = metadata.get("twitter:player:stream") {
+                    Ok(format!(
+                        "<meta name=\"twitter:player:stream\" content=\"{}\">\n",
+                        stream
+                    ))
+                } else {
+                    Ok("".to_string())
+                }
+            }
+
             // App-specific properties
             "twitter:app:id:iphone" => {
                 if let Some(id) = metadata.get("twitter:app:id:iphone") {
@@ -313,6 +442,28 @@ impl Generator for TwitterCardGenerator {
                 if let Some(name) = metadata.get("twitter:app:name:iphone") {
                     Ok(format!(
                         "<meta name=\"twitter:app:name:iphone\" content=\"{}\">\n",
+                        name
+                    ))
+                } else {
+                    Ok("".to_string())
+                }
+            }
+
+            "twitter:app:id:ipad" => {
+                if let Some(id) = metadata.get("twitter:app:id:ipad") {
+                    Ok(format!(
+                        "<meta name=\"twitter:app:id:ipad\" content=\"{}\">\n",
+                        id
+                    ))
+                } else {
+                    Ok("".to_string())
+                }
+            }
+
+            "twitter:app:name:ipad" => {
+                if let Some(name) = metadata.get("twitter:app:name:ipad") {
+                    Ok(format!(
+                        "<meta name=\"twitter:app:name:ipad\" content=\"{}\">\n",
                         name
                     ))
                 } else {
@@ -347,18 +498,71 @@ impl Generator for TwitterCardGenerator {
                 let prop_name = key.strip_prefix("twitter_value:").unwrap_or("");
                 let twitter_key = format!("twitter:{}", prop_name);
 
-                if prop_name == "site" {
-                    if let Some(site) = &self.twitter_site {
-                        return Ok(site.clone());
+                // Handle special cases with fallbacks
+                match prop_name {
+                    "site" => {
+                        let site = metadata
+                            .get("twitter:site")
+                            .cloned()
+                            .or_else(|| {
+                                metadata.get("twitter_handle").map(|handle| {
+                                    if handle.starts_with('@') {
+                                        handle.clone()
+                                    } else {
+                                        format!("@{}", handle)
+                                    }
+                                })
+                            })
+                            .or_else(|| self.twitter_site.clone());
+
+                        if let Some(site_value) = site {
+                            return Ok(site_value);
+                        }
                     }
-                } else if let Some(value) = metadata.get(&twitter_key) {
-                    return Ok(value.clone());
-                } else if prop_name == "card" {
-                    return Ok(self.default_card_type.clone());
-                } else if prop_name == "title" && metadata.get("title").is_some() {
-                    return Ok(metadata.get("title").unwrap().clone());
-                } else if prop_name == "description" && metadata.get("description").is_some() {
-                    return Ok(metadata.get("description").unwrap().clone());
+                    "card" => {
+                        let card_type = metadata
+                            .get("twitter:card")
+                            .or_else(|| metadata.get("twitter_card"))
+                            .cloned()
+                            .unwrap_or_else(|| self.default_card_type.clone());
+                        return Ok(card_type);
+                    }
+                    "title" => {
+                        let title = metadata
+                            .get("twitter:title")
+                            .or_else(|| metadata.get("og:title"))
+                            .or_else(|| metadata.get("title"))
+                            .cloned();
+                        if let Some(title_value) = title {
+                            return Ok(title_value);
+                        }
+                    }
+                    "description" => {
+                        let description = metadata
+                            .get("twitter:description")
+                            .or_else(|| metadata.get("og:description"))
+                            .or_else(|| metadata.get("description"))
+                            .cloned();
+                        if let Some(desc_value) = description {
+                            return Ok(desc_value);
+                        }
+                    }
+                    "image" => {
+                        let image = metadata
+                            .get("twitter:image")
+                            .or_else(|| metadata.get("og:image"))
+                            .or_else(|| metadata.get("default_image"))
+                            .cloned();
+                        if let Some(img_value) = image {
+                            return Ok(img_value);
+                        }
+                    }
+                    _ => {
+                        // For any other property, just look it up directly
+                        if let Some(value) = metadata.get(&twitter_key) {
+                            return Ok(value.clone());
+                        }
+                    }
                 }
 
                 Ok("".to_string())
@@ -385,11 +589,15 @@ impl GeneratorOutputSupport for TwitterCardGenerator {
             "twitter:description",
             "twitter:image",
             "twitter:image:alt",
+            "twitter:domain",
             "twitter:player",
             "twitter:player:width",
             "twitter:player:height",
+            "twitter:player:stream",
             "twitter:app:id:iphone",
             "twitter:app:name:iphone",
+            "twitter:app:id:ipad",
+            "twitter:app:name:ipad",
             "twitter:app:id:googleplay",
             "twitter:app:name:googleplay",
             "twitter_value:card",
@@ -421,7 +629,6 @@ mod tests {
             .unwrap();
 
         assert!(result.contains("<meta name=\"twitter:card\" content=\"summary\">"));
-        assert!(result.contains("<meta name=\"twitter:title\" content=\"\">"));
         assert!(!result.contains("twitter:site")); // Should not be present if not set
     }
 
@@ -495,6 +702,76 @@ mod tests {
     }
 
     #[test]
+    fn test_twitter_card_with_twitter_handle_format() {
+        let generator = TwitterCardGenerator {
+            twitter_site: None,
+            default_card_type: "summary".to_string(),
+        };
+
+        // Test with twitter_handle without @ symbol
+        let mut metadata = HashMap::new();
+        metadata.insert("twitter_handle".to_string(), "konnektoren".to_string());
+
+        let result = generator
+            .generate(
+                "twitter_card",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+
+        assert!(result.contains("<meta name=\"twitter:site\" content=\"@konnektoren\">"));
+
+        // Test with twitter_handle that already has @ symbol
+        let mut metadata = HashMap::new();
+        metadata.insert("twitter_handle".to_string(), "@konnektoren".to_string());
+
+        let result = generator
+            .generate(
+                "twitter_card",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+
+        assert!(result.contains("<meta name=\"twitter:site\" content=\"@konnektoren\">"));
+    }
+
+    #[test]
+    fn test_twitter_card_with_open_graph_fallbacks() {
+        let generator = TwitterCardGenerator::default();
+
+        // Set up metadata with Open Graph tags but no Twitter-specific tags
+        let mut metadata = HashMap::new();
+        metadata.insert("og:title".to_string(), "OG Title".to_string());
+        metadata.insert("og:description".to_string(), "OG Description".to_string());
+        metadata.insert(
+            "og:image".to_string(),
+            "https://example.com/og-image.jpg".to_string(),
+        );
+        metadata.insert("og:image:alt".to_string(), "OG Image Alt".to_string());
+
+        let result = generator
+            .generate(
+                "twitter_card",
+                "/test-route",
+                "<div>Test content</div>",
+                &metadata,
+            )
+            .unwrap();
+
+        // Verify Open Graph values were used as fallbacks
+        assert!(result.contains("<meta name=\"twitter:title\" content=\"OG Title\">"));
+        assert!(result.contains("<meta name=\"twitter:description\" content=\"OG Description\">"));
+        assert!(result.contains(
+            "<meta name=\"twitter:image\" content=\"https://example.com/og-image.jpg\">"
+        ));
+        assert!(result.contains("<meta name=\"twitter:image:alt\" content=\"OG Image Alt\">"));
+    }
+
+    #[test]
     fn test_twitter_player_card() {
         let generator = TwitterCardGenerator {
             twitter_site: Some("@rustyew".to_string()),
@@ -510,6 +787,10 @@ mod tests {
         );
         metadata.insert("twitter:player:width".to_string(), "480".to_string());
         metadata.insert("twitter:player:height".to_string(), "320".to_string());
+        metadata.insert(
+            "twitter:player:stream".to_string(),
+            "https://example.com/stream.mp4".to_string(),
+        );
 
         // Test with player card metadata
         let result = generator
@@ -528,6 +809,9 @@ mod tests {
         ));
         assert!(result.contains("<meta name=\"twitter:player:width\" content=\"480\">"));
         assert!(result.contains("<meta name=\"twitter:player:height\" content=\"320\">"));
+        assert!(result.contains(
+            "<meta name=\"twitter:player:stream\" content=\"https://example.com/stream.mp4\">"
+        ));
     }
 
     #[test]
