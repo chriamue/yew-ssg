@@ -3,11 +3,82 @@ use crate::processors::GeneratorOutputSupport;
 use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;
+use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct OpenGraphGenerator {
     pub site_name: String,
     pub default_image: String,
+}
+
+impl OpenGraphGenerator {
+    fn get_og_url(&self, metadata: &HashMap<String, String>) -> String {
+        if let Some(url) = metadata.get("og:url") {
+            url.clone()
+        } else if let Some(canonical) = metadata.get("canonical") {
+            canonical.clone()
+        } else if let Some(url) = metadata.get("url") {
+            url.clone()
+        } else if let (Some(domain), Some(path)) = (metadata.get("domain"), metadata.get("path")) {
+            if let Ok(base) = Url::parse(domain) {
+                if let Ok(joined) = base.join(path) {
+                    return joined.to_string();
+                }
+            }
+            // fallback to manual if url crate fails
+            let domain = domain.trim_end_matches('/');
+            let path = if path.starts_with('/') {
+                path.clone()
+            } else {
+                format!("/{}", path)
+            };
+            format!("{}{}", domain, path)
+        } else {
+            "".to_string()
+        }
+    }
+
+    fn get_og_locale(&self, metadata: &HashMap<String, String>) -> String {
+        // Try explicit metadata first
+        if let Some(lang) = metadata.get("lang").or_else(|| metadata.get("language")) {
+            return lang.clone();
+        }
+
+        // Try to detect from path if available
+        if let Some(path) = metadata.get("path") {
+            // Extract language code from URL path (e.g., "/de/about" → "de")
+            let path_segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+            if !path_segments.is_empty() {
+                // Check if first segment looks like a language code (2-3 chars)
+                let first_segment = path_segments[0];
+                if first_segment.len() >= 2 && first_segment.len() <= 3 {
+                    // Common language codes
+                    if ["en", "de", "es", "fr", "it", "ja", "zh", "ru"].contains(&first_segment) {
+                        return first_segment.to_string();
+                    }
+                }
+            }
+        }
+
+        // Default fallback
+        "en".to_string()
+    }
+
+    fn get_og_locale_alternates(
+        &self,
+        metadata: &HashMap<String, String>,
+        current: &str,
+    ) -> Vec<String> {
+        if let Some(alts) = metadata.get("alternate_languages") {
+            alts.split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|lang| !lang.is_empty() && lang != current)
+                .collect()
+        } else {
+            vec![]
+        }
+    }
 }
 
 impl Generator for OpenGraphGenerator {
@@ -22,16 +93,15 @@ impl Generator for OpenGraphGenerator {
     fn generate(
         &self,
         key: &str,
-        _route: &str,
+        route: &str,
         _content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {
         match key {
-            // Main output: full OpenGraph tags
             "open_graph" => {
                 let mut tags = String::new();
 
-                // Get OG type from metadata or default to "website"
+                // og:type
                 let og_type = metadata
                     .get("og:type")
                     .cloned()
@@ -41,7 +111,7 @@ impl Generator for OpenGraphGenerator {
                     og_type
                 ));
 
-                // Title - use og:title if available, then title, then empty
+                // og:title
                 let title = metadata
                     .get("og:title")
                     .or_else(|| metadata.get("title"))
@@ -52,7 +122,7 @@ impl Generator for OpenGraphGenerator {
                     title
                 ));
 
-                // Description - use og:description if available, then description, then empty
+                // og:description
                 let description = metadata
                     .get("og:description")
                     .or_else(|| metadata.get("description"))
@@ -63,16 +133,11 @@ impl Generator for OpenGraphGenerator {
                     description
                 ));
 
-                // URL - use og:url if available, then url, then canonical
-                let url = metadata
-                    .get("og:url")
-                    .or_else(|| metadata.get("url"))
-                    .or_else(|| metadata.get("canonical"))
-                    .cloned()
-                    .unwrap_or_default();
+                // og:url
+                let url = self.get_og_url(metadata);
                 tags.push_str(&format!("<meta property=\"og:url\" content=\"{}\">\n", url));
 
-                // Image - use og:image if available, then default
+                // og:image
                 let image = metadata
                     .get("og:image")
                     .cloned()
@@ -82,7 +147,7 @@ impl Generator for OpenGraphGenerator {
                     image
                 ));
 
-                // Site name - use og:site_name if available, then site_name, then default
+                // og:site_name
                 let site_name = metadata
                     .get("og:site_name")
                     .or_else(|| metadata.get("site_name"))
@@ -93,29 +158,34 @@ impl Generator for OpenGraphGenerator {
                     site_name
                 ));
 
-                // Optional locale if available
-                if let Some(locale) = metadata.get("og:locale").or_else(|| metadata.get("locale")) {
+                // og:locale (language code, not locale)
+                let og_locale = self.get_og_locale(metadata);
+                tags.push_str(&format!(
+                    "<meta property=\"og:locale\" content=\"{}\">\n",
+                    og_locale
+                ));
+
+                // og:locale:alternate
+                for alt in self.get_og_locale_alternates(metadata, &og_locale) {
                     tags.push_str(&format!(
-                        "<meta property=\"og:locale\" content=\"{}\">\n",
-                        locale
+                        "<meta property=\"og:locale:alternate\" content=\"{}\">\n",
+                        alt
                     ));
                 }
 
-                // Optional image dimensions if available
+                // Optional image dimensions
                 if let Some(width) = metadata.get("og:image:width") {
                     tags.push_str(&format!(
                         "<meta property=\"og:image:width\" content=\"{}\">\n",
                         width
                     ));
                 }
-
                 if let Some(height) = metadata.get("og:image:height") {
                     tags.push_str(&format!(
                         "<meta property=\"og:image:height\" content=\"{}\">\n",
                         height
                     ));
                 }
-
                 if let Some(alt) = metadata.get("og:image:alt") {
                     tags.push_str(&format!(
                         "<meta property=\"og:image:alt\" content=\"{}\">\n",
@@ -126,7 +196,6 @@ impl Generator for OpenGraphGenerator {
                 Ok(tags)
             }
 
-            // Individual OpenGraph properties with metadata priority
             "og:title" => {
                 let title = metadata
                     .get("og:title")
@@ -152,12 +221,7 @@ impl Generator for OpenGraphGenerator {
             }
 
             "og:url" => {
-                let url = metadata
-                    .get("og:url")
-                    .or_else(|| metadata.get("url"))
-                    .or_else(|| metadata.get("canonical"))
-                    .cloned()
-                    .unwrap_or_default();
+                let url = self.get_og_url(metadata);
                 Ok(format!("<meta property=\"og:url\" content=\"{}\">\n", url))
             }
 
@@ -184,7 +248,14 @@ impl Generator for OpenGraphGenerator {
                 ))
             }
 
-            // Unsupported key
+            "og:locale" => {
+                let og_locale = self.get_og_locale(metadata);
+                Ok(format!(
+                    "<meta property=\"og:locale\" content=\"{}\">\n",
+                    og_locale
+                ))
+            }
+
             _ => Err(format!("OpenGraphGenerator does not support key: {}", key).into()),
         }
     }
@@ -203,6 +274,7 @@ impl GeneratorOutputSupport for OpenGraphGenerator {
             "og:url",
             "og:image",
             "og:site_name",
+            "og:locale",
         ]
     }
 }
@@ -312,5 +384,39 @@ mod tests {
         assert!(
             site_name_result.contains("<meta property=\"og:site_name\" content=\"OG Site Name\">")
         );
+    }
+
+    #[test]
+    fn test_open_graph_generator_url_and_locale() {
+        let generator = OpenGraphGenerator {
+            site_name: "Test Site".to_string(),
+            default_image: "https://example.com/default.jpg".to_string(),
+        };
+
+        // Test with canonical and lang
+        let mut metadata = HashMap::new();
+        metadata.insert("title".to_string(), "Custom Title".to_string());
+        metadata.insert("description".to_string(), "Custom description".to_string());
+        metadata.insert(
+            "canonical".to_string(),
+            "https://example.com/404".to_string(),
+        );
+        metadata.insert("lang".to_string(), "de".to_string());
+        metadata.insert("alternate_languages".to_string(), "en,de,es".to_string());
+
+        let result = generator
+            .generate("open_graph", "/404", "<div>Test content</div>", &metadata)
+            .unwrap();
+
+        assert!(result.contains(r#"<meta property="og:url" content="https://example.com/404">"#));
+        assert!(result.contains(r#"<meta property="og:locale" content="de">"#));
+        assert!(result.contains(r#"<meta property="og:locale:alternate" content="en">"#));
+        assert!(result.contains(r#"<meta property="og:locale:alternate" content="es">"#));
+        // Should not contain "de" as alternate
+        let alternates: Vec<_> = result
+            .lines()
+            .filter(|l| l.contains("og:locale:alternate"))
+            .collect();
+        assert!(!alternates.iter().any(|l| l.contains(r#"content="de""#)));
     }
 }
