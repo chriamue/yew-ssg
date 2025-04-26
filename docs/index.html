@@ -857,9 +857,28 @@ For documentation of your own system you use better the <em>plain</em> version.<
 <div class="paragraph">
 <p>Yew-SSG operates within the context of modern web application development, specifically addressing the challenge of serving single-page applications (SPAs) that are also SEO-friendly and have fast initial loads.</p>
 </div>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-f39d5606b2f2b3b0044323a18308a5be.svg" alt="Diagram" width="519" height="466">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+actor "Developer" as dev
+actor "End User" as user
+actor "Search Engine" as search
+
+rectangle "Yew Application" as app
+rectangle "Yew-SSG" as ssg
+rectangle "Web Server" as server
+rectangle "Static Files" as static
+
+dev --&gt; app : develops
+dev --&gt; ssg : configures
+app &lt;-- ssg : pre-renders
+ssg --&gt; static : generates
+server --&gt; static : serves
+user --&gt; server : requests
+search --&gt; server : indexes
+
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -909,9 +928,34 @@ For documentation of your own system you use better the <em>plain</em> version.<
 </div>
 <div class="sect2">
 <h3 id="_technical_context">3.2. Technical Context</h3>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-1f3a5344fd196dc86f2cbda4156fe53b.svg" alt="Diagram" width="744" height="586">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+node "Yew-SSG" {
+  [Static Site Generator]
+  [Processors]
+  [Generators]
+}
+
+database "File System" {
+  folder "Output Directory" {
+    [Generated HTML]
+    [Assets]
+  }
+}
+
+[Yew Application] --&gt; [Static Site Generator] : routes, components
+[Configuration] --&gt; [Static Site Generator] : settings
+[HTML Templates] --&gt; [Processors] : template structure
+[Metadata] --&gt; [Generators] : content info
+
+[Static Site Generator] --&gt; [Processors] : processes HTML
+[Static Site Generator] --&gt; [Generators] : generates content
+[Processors] --&gt; [Generated HTML] : outputs
+[Generators] --&gt; [Generated HTML] : enhances
+
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1050,9 +1094,44 @@ For documentation of your own system you use better the <em>plain</em> version.<
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_whitebox_overall_system">5.1. Whitebox Overall System</h3>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-dc4442f2503a671c08b460be7c5248fc.svg" alt="Diagram" width="1619" height="401">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+package "yew-ssg" {
+  [StaticSiteGenerator] as SSG
+  [SsgConfig] as Config
+  [Generators] as GenCol
+  [Processors] as ProcCol
+
+  package "generators" {
+    [TitleGenerator]
+    [MetaTagGenerator]
+    [OpenGraphGenerator]
+    [TwitterCardGenerator]
+    [RobotsMetaGenerator]
+  }
+
+  package "processors" {
+    [TemplateVariableProcessor]
+    [AttributeProcessor]
+  }
+}
+
+Config --&gt; SSG : configures
+GenCol --&gt; SSG : provides content
+ProcCol --&gt; SSG : processes HTML
+
+[TitleGenerator] --&gt; GenCol : implements
+[MetaTagGenerator] --&gt; GenCol : implements
+[OpenGraphGenerator] --&gt; GenCol : implements
+[TwitterCardGenerator] --&gt; GenCol : implements
+[RobotsMetaGenerator] --&gt; GenCol : implements
+
+[TemplateVariableProcessor] --&gt; ProcCol : implements
+[AttributeProcessor] --&gt; ProcCol : implements
+
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1136,9 +1215,32 @@ For documentation of your own system you use better the <em>plain</em> version.<
 <h3 id="_level_2">5.2. Level 2</h3>
 <div class="sect3">
 <h4 id="_white_box_staticsitegenerator">5.2.1. White Box <em>StaticSiteGenerator</em></h4>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-d8386912b59b7c5da9f3faf5926c6b9a.svg" alt="Diagram" width="370" height="415">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+class StaticSiteGenerator {
+  +config: SsgConfig
+  -template_env: Environment
+  +new(config: SsgConfig) -&gt; Result
+  +generate&lt;R, F&gt;(switch_fn: F) -&gt; Result
+  -render_route() -&gt; Result
+  -wrap_html() -&gt; Result
+  -determine_output_path() -&gt; (PathBuf, PathBuf)
+}
+
+class SsgConfig {
+  +output_dir: PathBuf
+  +template_path: Option&lt;PathBuf&gt;
+  +default_template: String
+  +global_metadata: HashMap
+  +route_metadata: HashMap
+  +generators: GeneratorCollection
+  +processors: ProcessorCollection
+}
+
+SsgConfig "1" -- "1" StaticSiteGenerator : configures &gt;
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1167,9 +1269,59 @@ For documentation of your own system you use better the <em>plain</em> version.<
 </div>
 <div class="sect3">
 <h4 id="_white_box_generator_system">5.2.2. White Box <em>Generator System</em></h4>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-112c170ed5a11761912393a931416d39.svg" alt="Diagram" width="1134" height="442">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+interface Generator {
+  +name() -&gt; &amp;'static str
+  +generate(key, route, content, metadata) -&gt; Result
+  +clone_box() -&gt; Box&lt;dyn Generator&gt;
+  +as_any() -&gt; &amp;dyn Any
+}
+
+class GeneratorCollection {
+  -generators: Vec&lt;Box&lt;dyn Generator&gt;&gt;
+  +add&lt;G: Generator&gt;(&amp;mut self, generator: G)
+  +try_get_output_support() -&gt; Option&lt;&amp;dyn GeneratorOutputSupport&gt;
+}
+
+interface GeneratorOutputSupport {
+  +supported_outputs() -&gt; Vec&lt;&amp;'static str&gt;
+  +supports_output(key: &amp;str) -&gt; bool
+}
+
+class TitleGenerator {}
+class MetaTagGenerator {
+  +default_description: String
+  +default_keywords: Vec&lt;String&gt;
+}
+class OpenGraphGenerator {
+  +site_name: String
+  +default_image: String
+}
+class TwitterCardGenerator {
+  +twitter_site: Option&lt;String&gt;
+  +default_card_type: String
+}
+class RobotsMetaGenerator {
+  +default_robots: String
+}
+
+Generator &lt;|.. TitleGenerator
+Generator &lt;|.. MetaTagGenerator
+Generator &lt;|.. OpenGraphGenerator
+Generator &lt;|.. TwitterCardGenerator
+Generator &lt;|.. RobotsMetaGenerator
+
+GeneratorOutputSupport &lt;|.. TitleGenerator
+GeneratorOutputSupport &lt;|.. MetaTagGenerator
+GeneratorOutputSupport &lt;|.. OpenGraphGenerator
+GeneratorOutputSupport &lt;|.. TwitterCardGenerator
+GeneratorOutputSupport &lt;|.. RobotsMetaGenerator
+
+GeneratorCollection o-- "many" Generator : contains &gt;
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1189,9 +1341,45 @@ For documentation of your own system you use better the <em>plain</em> version.<
 </div>
 <div class="sect3">
 <h4 id="_white_box_processor_system">5.2.3. White Box <em>Processor System</em></h4>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-0ee1d1cf4789156df08c4381abbfc0ec.svg" alt="Diagram" width="745" height="600">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+interface Processor {
+  +name() -&gt; &amp;'static str
+  +process(html, metadata, generator_outputs, content) -&gt; Result
+  +clone_box() -&gt; Box&lt;dyn Processor&gt;
+}
+
+class ProcessorCollection {
+  -processors: Vec&lt;Box&lt;dyn Processor&gt;&gt;
+  +add&lt;P: Processor&gt;(&amp;mut self, processor: P)
+  +process_all() -&gt; Result
+}
+
+class TemplateVariableProcessor {
+  -start_delimiter: String
+  -end_delimiter: String
+}
+
+class AttributeProcessor {
+  -prefix: String
+  -generators: Arc&lt;Option&lt;GeneratorCollection&gt;&gt;
+}
+
+enum SsgAttribute {
+  Attribute(String)
+  Content
+  Placeholder
+}
+
+Processor &lt;|.. TemplateVariableProcessor
+Processor &lt;|.. AttributeProcessor
+
+ProcessorCollection o-- "many" Processor : contains &gt;
+AttributeProcessor ..&gt; SsgAttribute : uses &gt;
+
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1213,28 +1401,7 @@ For documentation of your own system you use better the <em>plain</em> version.<
 <h4 id="_white_box_attributeprocessor">5.3.1. White Box <em>AttributeProcessor</em></h4>
 <div class="listingblock">
 <div class="content">
-<pre>Failed to generate image: PlantUML preprocessing failed: [From &lt;input&gt; (line 17) ]
-
-@startuml
-class AttributeProcessor {
-  -prefix: String
-  -generators: Arc&lt;Option&lt;GeneratorCollection&gt;&gt;
-  +new(prefix: &amp;str, generators: Option&lt;GeneratorCollection&gt;) -&gt; Self
-  +process() -&gt; Result
-  -try_generate_output() -&gt; Result
-}
-
-enum SsgAttribute {
-  Attribute(String)
-  Content
-  Placeholder
-  +from_str(attr: &amp;str) -&gt; Option&lt;Self&gt;
-}
-
-function "process_element()" {
-^^^^^
- Syntax Error? (Assumed diagram type: class)
-
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
 @startuml
 class AttributeProcessor {
   -prefix: String
@@ -1281,9 +1448,43 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_static_site_generation_process">6.1. Static Site Generation Process</h3>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-ca7d5a5bcb67cb16eefd5505a00a5567.svg" alt="Diagram" width="1201" height="691">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+actor Developer
+participant "StaticSiteGenerator" as SSG
+participant "Yew Router" as Router
+participant "Yew Component" as Component
+participant "GeneratorCollection" as Generators
+participant "ProcessorCollection" as Processors
+database "File System" as FS
+
+Developer -&gt; SSG: generate(switch_fn)
+loop for each route
+  SSG -&gt; Router: Get route path
+  SSG -&gt; Component: render_route(route)
+  Component --&gt; SSG: rendered HTML
+
+  SSG -&gt; SSG: get_metadata_for_route(route_path)
+
+  loop for each generator
+    SSG -&gt; Generators: generate content for route
+    Generators --&gt; SSG: generator outputs
+  end
+
+  SSG -&gt; Processors: process_all(content, metadata, generator_outputs)
+  Processors --&gt; SSG: processed HTML
+
+  SSG -&gt; SSG: wrap_html(content, path, metadata, generator_outputs)
+
+  SSG -&gt; SSG: determine_output_path(route_path)
+  SSG -&gt; FS: create_dir_all(dir_path)
+  SSG -&gt; FS: write(file_path, html)
+end
+
+SSG --&gt; Developer: Ok(())
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1330,9 +1531,27 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 </div>
 <div class="sect2">
 <h3 id="_template_processing_sequence">6.2. Template Processing Sequence</h3>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-71b018821efced547ecf86e4fb71159c.svg" alt="Diagram" width="866" height="350">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+participant "StaticSiteGenerator" as SSG
+participant "MiniJinja Template" as Template
+participant "TemplateVariableProcessor" as VarProcessor
+participant "AttributeProcessor" as AttrProcessor
+
+SSG -&gt; Template: render(context)
+Template --&gt; SSG: rendered_template
+
+SSG -&gt; VarProcessor: process(rendered_template, metadata, generator_outputs)
+VarProcessor -&gt; VarProcessor: Replace {{variables}}
+VarProcessor --&gt; SSG: template_with_vars
+
+SSG -&gt; AttrProcessor: process(template_with_vars, metadata, generator_outputs)
+AttrProcessor -&gt; AttrProcessor: Process data-ssg attributes
+AttrProcessor --&gt; SSG: final_html
+
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1357,9 +1576,41 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 </div>
 <div class="sect2">
 <h3 id="_generator_execution_sequence">6.3. Generator Execution Sequence</h3>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-5ffca361ef45f04583235dc97f30a072.svg" alt="Diagram" width="846" height="484">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+participant "StaticSiteGenerator" as SSG
+participant "GeneratorCollection" as GenCol
+participant "TitleGenerator" as Title
+participant "MetaTagGenerator" as Meta
+participant "OpenGraphGenerator" as OG
+
+SSG -&gt; GenCol: Get all generators
+GenCol --&gt; SSG: generators list
+
+loop for each generator
+  SSG -&gt; Title: generate("title", route, content, metadata)
+  Title --&gt; SSG: "&lt;title&gt;Page Title&lt;/title&gt;"
+
+  SSG -&gt; Title: Try get supported outputs
+  Title --&gt; SSG: ["title", "title_text"]
+
+  loop for each supported output (except main)
+    SSG -&gt; Title: generate("title_text", route, content, metadata)
+    Title --&gt; SSG: "Page Title"
+  end
+end
+
+loop for other generators
+  SSG -&gt; Meta: generate("meta_tags", ...)
+  Meta --&gt; SSG: "&lt;meta&gt;...&lt;/meta&gt;"
+
+  SSG -&gt; OG: generate("open_graph", ...)
+  OG --&gt; SSG: "&lt;meta property='og:...'&gt;..."
+end
+
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1393,9 +1644,42 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_infrastructure_level_1">7.1. Infrastructure Level 1</h3>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-370eb6c2c93bd7a5b6e209c8d7e9568e.svg" alt="Diagram" width="1024" height="548">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+node "Development Environment" {
+  [Rust Project] as RustProj
+  [Yew Application] as YewApp
+  [Yew-SSG Library] as YewSSG
+  [SSG Binary] as SSGBin
+
+  RustProj --&gt; YewApp : contains
+  RustProj --&gt; YewSSG : depends on
+  RustProj --&gt; SSGBin : contains
+  SSGBin --&gt; YewSSG : uses
+  SSGBin --&gt; YewApp : pre-renders
+}
+
+node "Build System" {
+  [Cargo] as Cargo
+  [Build Scripts] as Build
+
+  Cargo --&gt; Build : runs
+}
+
+node "Web Server" {
+  [Static Files] as Static
+  [Index HTML Files] as Index
+  [Asset Files] as Assets
+
+  Static --&gt; Index : contains
+  Static --&gt; Assets : contains
+}
+
+RustProj --&gt; Cargo : built by
+SSGBin --&gt; Static : generates
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1447,9 +1731,46 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 <h3 id="_infrastructure_level_2">7.2. Infrastructure Level 2</h3>
 <div class="sect3">
 <h4 id="_development_environment">7.2.1. <em>Development Environment</em></h4>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-402c81c3ee2e27ccf96658e7b9409bb9.svg" alt="Diagram" width="1349" height="557">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+node "Rust Project" {
+  folder "src" {
+    [App Components]
+    [Routing]
+    [Main.rs]
+  }
+
+  folder "ssg" {
+    [SSG Binary]
+  }
+
+  folder "static" {
+    [CSS]
+    [Images]
+    [JavaScript]
+  }
+
+  [Cargo.toml] as Cargo
+
+  Cargo --&gt; [App Components] : defines
+  Cargo --&gt; [SSG Binary] : defines
+  [SSG Binary] --&gt; [Routing] : uses
+  [Main.rs] --&gt; [App Components] : uses
+  [Main.rs] --&gt; [Routing] : uses
+}
+
+folder "output" {
+  folder "dist" {
+    [Generated HTML]
+    [Copied Static Assets]
+  }
+}
+
+[SSG Binary] --&gt; [Generated HTML] : creates
+[static] --&gt; [Copied Static Assets] : copied to
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1500,9 +1821,44 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 </div>
 <div class="sect3">
 <h4 id="_web_server_deployment">7.2.2. <em>Web Server Deployment</em></h4>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-38b361cf90feeaa861c3ee3bd1acfa94.svg" alt="Diagram" width="1082" height="706">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+node "Web Server" {
+  [Static File Server]
+
+  folder "document_root" {
+    [index.html] as Root
+
+    folder "about" {
+      [index.html] as About
+    }
+
+    folder "blog" {
+      [index.html] as Blog
+
+      folder "post-1" {
+        [index.html] as Post1
+      }
+    }
+
+    folder "assets" {
+      [styles.css]
+      [app.js]
+      [images]
+    }
+  }
+
+  [Static File Server] --&gt; [document_root] : serves
+}
+
+actor "User" as User
+actor "Search Engine" as Search
+
+User --&gt; [Static File Server] : requests
+Search --&gt; [Static File Server] : indexes
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1547,9 +1903,69 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_domain_model">8.1. Domain Model</h3>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-af21b8c72b20fd7992905bd74bfe57cd.svg" alt="Diagram" width="1028" height="664">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startuml
+class "Static Site Generator" as SSG {
+  Renders Yew components to HTML
+  Processes templates
+  Applies generators
+  Writes static files
+}
+
+class "Generator" as Gen {
+  Produces HTML content
+  May support multiple outputs
+  Can access metadata
+}
+
+class "Processor" as Proc {
+  Transforms HTML content
+  May replace variables
+  May process attributes
+}
+
+class "Template" as Templ {
+  Contains placeholders
+  May have special attributes
+  Defines page structure
+}
+
+class "Route" as Route {
+  Path in the application
+  Associated component
+  Metadata for SEO
+}
+
+class "Metadata" as Meta {
+  Global metadata
+  Route-specific metadata
+  Used by generators
+  Referenced in templates
+}
+
+class "Output" as Out {
+  Static HTML files
+  Directory structure matching routes
+  Optimized for SEO
+}
+
+SSG --&gt; Gen : uses
+SSG --&gt; Proc : uses
+SSG --&gt; Templ : applies
+SSG --&gt; Route : processes
+SSG --&gt; Meta : references
+SSG --&gt; Out : produces
+
+Gen --&gt; Meta : reads
+Gen --&gt; Out : contributes to
+Proc --&gt; Templ : transforms
+Proc --&gt; Out : contributes to
+Templ --&gt; Out : shapes
+Route --&gt; Meta : has
+Route --&gt; Out : mapped to
+@enduml</pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1928,9 +2344,32 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_quality_tree">10.1. Quality Tree</h3>
-<div class="imageblock">
+<div class="listingblock">
 <div class="content">
-<img src="./images/diag-plantuml-md5-1e9c79ce4c1ada3503765dc5b501738e.svg" alt="Diagram" width="483" height="866">
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
+@startmindmap
+* Quality
+** SEO
+*** Search Engine Visibility
+*** Proper Meta Tags
+*** Semantic HTML
+** Performance
+*** Fast Initial Load
+*** Small Bundle Size
+*** Efficient Generation
+** Usability
+*** Easy Configuration
+*** Sensible Defaults
+*** Clear Documentation
+** Extensibility
+*** Custom Generators
+*** Custom Processors
+*** Template Flexibility
+** Maintainability
+*** Clean Architecture
+*** Test Coverage
+*** Code Documentation
+@endmindmap</pre>
 </div>
 </div>
 </div>
@@ -2200,7 +2639,7 @@ AttributeProcessor ..&gt; "process_element()" : calls &gt;
 <h3 id="_riskdebt_matrix">11.3. Risk/Debt Matrix</h3>
 <div class="listingblock">
 <div class="content">
-<pre>Failed to generate image: PlantUML preprocessing failed: No @startuml found
+<pre>Failed to generate image: Could not load PlantUML. Either require 'asciidoctor-diagram-plantuml' or specify the location of the PlantUML JAR(s) using the 'DIAGRAM_PLANTUML_CLASSPATH' environment variable. Alternatively a PlantUML binary can be provided (plantuml-native in $PATH).
 @startchart
 &lt;style&gt;
 .medium {
@@ -2366,7 +2805,7 @@ add D-5 3.0 300
 <div id="footer">
 <div id="footer-text">
 Version 0.1.0<br>
-Last updated 2025-04-19 13:51:17 UTC
+Last updated 2025-04-26 05:12:32 UTC
 </div>
 </div>
 </body>
