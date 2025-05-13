@@ -4,6 +4,8 @@ general:
   default_image: "/images/default-social-cover.jpg"
   template_path: "dist/index.html"
   assets_base_dir: "assets"
+  canonical_to_default_langs: false
+  default_language: "en"
 
 global_metadata:
   keywords: "yew, rust, ssg, webdev, spa, seo"
@@ -26,9 +28,7 @@ routes:
     metadata:
       title: "Home | Yew SSG Example"
       description: "Welcome to the Yew Static Site Generator example homepage. See how Yew SPAs can be SEO-friendly."
-      canonical: "https://example.com/"
-      alternate_url_en: "https://example.com/?lang=en"
-      alternate_url_es: "https://example.com/es/"
+
       json_ld_type: "WebSite"
       headline: "Yew SSG - Static Site Generation for Rust Web Apps"
       publisher: "Yew SSG Project"
@@ -41,6 +41,9 @@ routes:
       title: "Home | Yew SSG Example (English)"
       description: "Welcome to the Yew Static Site Generator example homepage in English."
       lang: "en"
+      canonical: "https://example.com/"
+      alternate_url_en: "https://example.com/?lang=en"
+      alternate_url_es: "https://example.com/es/"
 
   - path: "/de/"
     metadata:

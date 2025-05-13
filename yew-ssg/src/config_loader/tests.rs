@@ -4,8 +4,8 @@ mod tests {
         loader::{load_config, ConfigLoader},
         loaders::{JsonLoader, YamlLoader},
         model::{
-            GeneralConfig, ParameterDefinition, ParameterVariant, ParameterizedRouteConfig,
-            RouteConfig, SsgFileConfig,
+            CanonicalBehavior, GeneralConfig, ParameterDefinition, ParameterVariant,
+            ParameterizedRouteConfig, RouteConfig, SsgFileConfig,
         },
     };
     use std::collections::HashMap;
@@ -295,6 +295,8 @@ routes:
                 title_format: "{title} - {site_name}".to_string(),
                 default_image: Some("/images/default.jpg".to_string()),
                 twitter_handle: Some("testhandle".to_string()),
+                canonical_to_default_langs: Some(CanonicalBehavior::Boolean(true)),
+                default_language: "en".to_string(),
             },
             global_metadata: HashMap::from([
                 ("lang".to_string(), "en".to_string()),

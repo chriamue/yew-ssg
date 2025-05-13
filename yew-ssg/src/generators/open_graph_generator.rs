@@ -93,7 +93,7 @@ impl Generator for OpenGraphGenerator {
     fn generate(
         &self,
         key: &str,
-        route: &str,
+        _route: &str,
         _content: &str,
         metadata: &HashMap<String, String>,
     ) -> Result<String, Box<dyn Error>> {

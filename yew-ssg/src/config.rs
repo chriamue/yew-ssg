@@ -128,14 +128,53 @@ pub struct SsgConfig {
 
 impl SsgConfig {
     /// Get combined metadata for a specific route, merging global and route-specific metadata.
-    /// Route-specific metadata takes precedence.
+    /// Route-specific metadata takes precedence. Supports parent path inheritance.
     pub fn get_metadata_for_route(&self, route_path: &str) -> HashMap<String, String> {
         let mut metadata = self.global_metadata.clone();
 
+        // Collect all parent paths (including the route itself)
+        let mut paths = Vec::new();
+        let mut path = route_path.trim_end_matches('/').to_string();
+        if path.is_empty() {
+            path = "/".to_string();
+        }
+        loop {
+            // Always add a trailing slash except for root
+            let normalized = if path == "/" {
+                "/".to_string()
+            } else {
+                format!("{}/", path.trim_end_matches('/'))
+            };
+            paths.push(normalized);
+            if path == "/" {
+                break;
+            }
+            // Remove last segment
+            if let Some(pos) = path.rfind('/') {
+                if pos == 0 {
+                    path = "/".to_string();
+                } else {
+                    path = path[..pos].to_string();
+                }
+            } else {
+                break;
+            }
+        }
+        // Reverse so that more general paths are merged first
+        paths.reverse();
+
+        for p in paths {
+            if let Some(route_specific) = self.route_metadata.get(&p) {
+                metadata.extend(route_specific.clone());
+            }
+        }
+
+        // Also check for exact match (without trailing slash)
         if let Some(route_specific) = self.route_metadata.get(route_path) {
-            // Route-specific metadata overrides global metadata
             metadata.extend(route_specific.clone());
         }
+
+        metadata.insert("path".to_string(), route_path.to_string());
 
         metadata
     }
@@ -372,5 +411,101 @@ impl SsgConfigBuilder {
         }
 
         config
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_config() -> SsgConfig {
+        let mut global = HashMap::new();
+        global.insert("site".to_string(), "GlobalSite".to_string());
+        global.insert("lang".to_string(), "en".to_string());
+
+        let mut route_metadata = HashMap::new();
+        route_metadata.insert(
+            "/".to_string(),
+            HashMap::from([
+                ("site".to_string(), "RootSite".to_string()),
+                ("root_only".to_string(), "yes".to_string()),
+            ]),
+        );
+        route_metadata.insert(
+            "/de/".to_string(),
+            HashMap::from([
+                ("lang".to_string(), "de".to_string()),
+                ("site".to_string(), "GermanSite".to_string()),
+            ]),
+        );
+        route_metadata.insert(
+            "/de/404".to_string(),
+            HashMap::from([("title".to_string(), "404 Deutsch".to_string())]),
+        );
+        route_metadata.insert(
+            "/about".to_string(),
+            HashMap::from([("title".to_string(), "About Us".to_string())]),
+        );
+
+        SsgConfig {
+            output_dir: PathBuf::from("dist"),
+            template_path: None,
+            default_template: String::new(),
+            global_metadata: global,
+            route_metadata,
+            generators: GeneratorCollection::new(),
+            processors: ProcessorCollection::new(),
+            route_params: HashMap::new(),
+            assets_base_dir: None,
+        }
+    }
+
+    #[test]
+    fn test_root_metadata() {
+        let config = make_config();
+        let meta = config.get_metadata_for_route("/");
+        assert_eq!(meta.get("site").unwrap(), "RootSite");
+        assert_eq!(meta.get("root_only").unwrap(), "yes");
+        assert_eq!(meta.get("lang").unwrap(), "en");
+    }
+
+    #[test]
+    fn test_about_metadata() {
+        let config = make_config();
+        let meta = config.get_metadata_for_route("/about");
+        assert_eq!(meta.get("site").unwrap(), "RootSite");
+        assert_eq!(meta.get("title").unwrap(), "About Us");
+        assert_eq!(meta.get("lang").unwrap(), "en");
+    }
+
+    #[test]
+    fn test_de_metadata() {
+        let config = make_config();
+        let meta = config.get_metadata_for_route("/de/");
+        assert_eq!(meta.get("site").unwrap(), "GermanSite");
+        assert_eq!(meta.get("lang").unwrap(), "de");
+        assert_eq!(meta.get("root_only").unwrap(), "yes");
+    }
+
+    #[test]
+    fn test_de_404_metadata() {
+        let config = make_config();
+        let meta = config.get_metadata_for_route("/de/404");
+        // Should inherit from /de/ and /
+        assert_eq!(meta.get("site").unwrap(), "GermanSite");
+        assert_eq!(meta.get("lang").unwrap(), "de");
+        assert_eq!(meta.get("title").unwrap(), "404 Deutsch");
+        assert_eq!(meta.get("root_only").unwrap(), "yes");
+    }
+
+    #[test]
+    fn test_nonexistent_route_metadata() {
+        let config = make_config();
+        let meta = config.get_metadata_for_route("/foo/bar");
+        // Should inherit from global and root only
+        assert_eq!(meta.get("site").unwrap(), "RootSite");
+        assert_eq!(meta.get("lang").unwrap(), "en");
+        assert_eq!(meta.get("root_only").unwrap(), "yes");
+        assert!(meta.get("title").is_none());
     }
 }

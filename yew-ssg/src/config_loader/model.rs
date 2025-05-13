@@ -58,6 +58,19 @@ pub struct GeneralConfig {
 
     /// Twitter handle (without @)
     pub twitter_handle: Option<String>,
+
+    /// Either a boolean for all languages or a comma-separated list of language codes
+    /// that should have canonical URLs pointing to the default language.
+    /// Examples:
+    ///   canonical_to_default_langs: true     // All translated pages point to default language
+    ///   canonical_to_default_langs: "de,es"  // Only German and Spanish pages point to default language
+    ///   canonical_to_default_langs: false    // All languages have their own canonical URL (default)
+    #[serde(default)]
+    pub canonical_to_default_langs: Option<CanonicalBehavior>,
+
+    /// Default language code used for canonical URLs (default: "en")
+    #[serde(default = "default_language")]
+    pub default_language: String,
 }
 
 /// Configuration for a specific route
@@ -120,6 +133,10 @@ fn default_site_name() -> String {
 
 fn default_title_format() -> String {
     "{title} | {site_name}".to_string()
+}
+
+fn default_language() -> String {
+    "en".to_string()
 }
 
 impl SsgFileConfig {
@@ -202,5 +219,21 @@ impl SsgFileConfig {
 
         // Build the final config
         builder.build()
+    }
+}
+
+/// Represents behavior for canonical URLs in translations
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum CanonicalBehavior {
+    /// Apply to all languages or none
+    Boolean(bool),
+    /// Apply to specific languages
+    Languages(String),
+}
+
+impl Default for CanonicalBehavior {
+    fn default() -> Self {
+        CanonicalBehavior::Boolean(false)
     }
 }
