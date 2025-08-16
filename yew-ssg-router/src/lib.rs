@@ -10,6 +10,7 @@ pub mod utils;
 
 mod language_context;
 mod language_negotiation;
+mod language_utils;
 mod localized_app;
 mod localized_link;
 mod localized_routable;
@@ -26,6 +27,7 @@ pub use static_switch::StaticSwitch;
 
 pub use language_context::{use_language, LanguageContext, LanguageProvider, TextDirection};
 pub use language_negotiation::LanguageNegotiator;
+pub use language_utils::LanguageUtils;
 pub use localized_app::{LocalizedApp, LocalizedAppProps};
 pub use localized_link::{LocalizedLink, LocalizedLinkProps};
 pub use localized_routable::LocalizedRoutable;
@@ -45,10 +47,12 @@ pub mod prelude {
         use_language, LanguageContext, LanguageProvider, TextDirection,
     };
     pub use crate::language_negotiation::LanguageNegotiator;
+    pub use crate::language_utils::LanguageUtils;
     pub use crate::localized_app::{LocalizedApp, LocalizedAppProps};
     pub use crate::localized_routable::LocalizedRoutable;
     pub use crate::localized_route_iter::LocalizedRouteIter;
     pub use crate::route_language::{use_route_language, RouteLanguageExtractor};
+    pub use crate::with_language;
     pub use yew_router::prelude::{use_location, use_route, Location, LocationHandle, Routable};
     pub use yew_ssg_router_macros::LocalizedRoutable;
 

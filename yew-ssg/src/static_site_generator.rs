@@ -81,6 +81,23 @@ impl StaticSiteGenerator {
         })
     }
 
+    pub fn set_current_language(lang: &str) {
+        // Set both environment variable and thread-local
+        std::env::set_var("YEW_SSG_CURRENT_LANG", lang);
+        yew_router::LanguageContext::set_thread_local_lang(lang);
+    }
+
+    /// Clear the current language from both sources
+    pub fn clear_current_language() {
+        std::env::remove_var("YEW_SSG_CURRENT_LANG");
+        yew_router::LanguageContext::clear_thread_local_lang();
+    }
+
+    /// Get the current language from the best available source
+    pub fn get_current_language() -> String {
+        yew_router::LanguageContext::get_current_lang()
+    }
+
     /// Generate static HTML files for all routes.
     pub async fn generate<R, C>(&self) -> Result<(), Box<dyn Error>>
     where
@@ -89,7 +106,6 @@ impl StaticSiteGenerator {
     {
         fs::create_dir_all(&self.config.output_dir)?;
 
-        // Get path prefix from environment variable if set
         let path_prefix = std::env::var("YEW_SSG_CURRENT_PATH_PREFIX").unwrap_or_default();
         if !path_prefix.is_empty() {
             info!("Using path prefix: {}", path_prefix);
@@ -99,11 +115,10 @@ impl StaticSiteGenerator {
             let route_path = route.to_path();
             info!("Generating route: {}", route_path);
 
-            // 1. Set the YEW_SSG_CURRENT_PATH env var, with prefix if present
+            // 1. Set YEW_SSG_CURRENT_PATH
             if path_prefix.is_empty() {
                 std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
             } else {
-                // If prefix doesn't have a leading slash, add one
                 let prefixed_path = if path_prefix.starts_with('/') {
                     format!("{}{}", path_prefix, route_path)
                 } else {
@@ -113,52 +128,43 @@ impl StaticSiteGenerator {
                 info!("  Using prefixed path: {}", prefixed_path);
             }
 
-            // 2. Render the root component
+            // (Optional) If you know language externally, you could call set_current_language here.
+
+            // 2. Render the root component (SSR)
             let content = self.render_base_component::<C>().await?;
 
-            // 3. Clear the YEW_SSG_CURRENT_PATH env var
+            // 3. Clear path + language hints after render
             std::env::remove_var("YEW_SSG_CURRENT_PATH");
+            Self::clear_current_language();
 
-            // 4. Get metadata for the route
+            // 4. Metadata
             let mut metadata = self.config.get_metadata_for_route(&route_path);
             metadata.insert("path".to_string(), route_path.clone());
-
-            // Add prefix to metadata if present
             if !path_prefix.is_empty() {
                 metadata.insert("path_prefix".to_string(), path_prefix.clone());
             }
 
-            // 5. Generate outputs from all generators
+            // 5. Generator outputs
             let mut generator_outputs = HashMap::new();
-
             for generator in &self.config.generators.generators {
-                // Generate the main output using the generator's name
                 let name = generator.name();
                 let result = generator.generate(name, &route_path, &content, &metadata)?;
                 generator_outputs.insert(name.to_string(), result);
 
-                // Check if generator supports additional outputs
                 if let Some(support) = self.config.generators.try_get_output_support(generator) {
-                    // Generate additional outputs
                     for key in support.supported_outputs() {
-                        // Skip the main output we already did
                         if key == name {
                             continue;
                         }
-
-                        match generator.generate(key, &route_path, &content, &metadata) {
-                            Ok(output) => {
-                                generator_outputs.insert(key.to_string(), output);
-                            }
-                            Err(e) => {
-                                warn!("Failed to generate '{}' output: {}", key, e);
-                            }
+                        if let Ok(extra) = generator.generate(key, &route_path, &content, &metadata)
+                        {
+                            generator_outputs.insert(key.to_string(), extra);
                         }
                     }
                 }
             }
 
-            // 6. Run processors on the content
+            // 6. Processors
             let processed_content = self.config.processors.process_all(
                 &content,
                 &metadata,
@@ -166,7 +172,7 @@ impl StaticSiteGenerator {
                 &content,
             )?;
 
-            // 7. Create the final HTML
+            // 7. Final HTML assembly
             let html = self.wrap_html(
                 &processed_content,
                 &route_path,
@@ -174,23 +180,18 @@ impl StaticSiteGenerator {
                 &generator_outputs,
             )?;
 
-            // 8. Write to output file - use prefixed output path if prefix is set
+            // 8. Write file (respect prefix)
             let (dir_path, file_path) = if path_prefix.is_empty() {
                 self.determine_output_path(&route_path)
             } else {
-                // If prefix is set, add it to the output path
-                // Ensure prefix doesn't have leading slash for file paths
                 let clean_prefix = path_prefix.trim_start_matches('/');
-
                 if route_path == "/" {
-                    // Special case for root route
                     let prefixed_dir = self.config.output_dir.join(clean_prefix);
                     (prefixed_dir.clone(), prefixed_dir.join("index.html"))
                 } else {
-                    // For other routes
-                    let path_component = route_path.trim_start_matches('/');
-                    let prefixed_path = format!("{}/{}", clean_prefix, path_component);
-                    let dir = self.config.output_dir.join(prefixed_path);
+                    let component = route_path.trim_start_matches('/');
+                    let full = format!("{}/{}", clean_prefix, component);
+                    let dir = self.config.output_dir.join(full);
                     (dir.clone(), dir.join("index.html"))
                 }
             };
@@ -203,7 +204,7 @@ impl StaticSiteGenerator {
         Ok(())
     }
 
-    /// Generate parameterized routes by inferring the route constructor from patterns
+    /// Generate parameterized routes based on configuration.
     pub async fn generate_parameterized_routes<R, C>(&self) -> Result<(), Box<dyn Error>>
     where
         R: Routable + Clone + PartialEq + Debug + Send + 'static,
@@ -211,13 +212,11 @@ impl StaticSiteGenerator {
     {
         info!("Generating parameterized routes from configuration...");
 
-        // Early return if no parameterized routes are defined
         if self.config.route_params.is_empty() {
             info!("No parameterized routes defined in configuration");
             return Ok(());
         }
 
-        // Get path prefix from environment variable if set
         let path_prefix = std::env::var("YEW_SSG_CURRENT_PATH_PREFIX").unwrap_or_default();
         if !path_prefix.is_empty() {
             info!(
@@ -228,45 +227,37 @@ impl StaticSiteGenerator {
 
         let mut total_generated = 0;
 
-        // For each parameterized route pattern in the config
-        for (route_pattern_config, route_params) in &self.config.route_params {
-            // Generate all parameter combinations based on the config
-            let param_combinations = route_params.generate_param_combinations();
-            if param_combinations.is_empty() {
+        for (pattern, route_params) in &self.config.route_params {
+            let combos = route_params.generate_param_combinations();
+            if combos.is_empty() {
                 warn!(
                     "No valid parameter combinations for route pattern: {}",
-                    route_pattern_config
+                    pattern
                 );
                 continue;
             }
 
             info!(
                 "Processing {} variants for parameterized route: {}",
-                param_combinations.len(),
-                route_pattern_config
+                combos.len(),
+                pattern
             );
 
-            // For each parameter combination
-            for params in param_combinations {
-                // Convert the pattern with placeholders into an actual path with values
-                let constructed_path =
-                    Self::construct_path_from_pattern(route_pattern_config, &params);
+            for params in combos {
+                let constructed_path = Self::construct_path_from_pattern(pattern, &params);
 
-                // Now use the actual Routable trait to recognize the path
                 if let Some(route) = R::recognize(&constructed_path) {
                     let route_path = route.to_path();
-
                     info!(
                         "Generating parameterized route: {} with params: {:?}",
                         route_path, params
                     );
                     total_generated += 1;
 
-                    // 1. Set the YEW_SSG_CURRENT_PATH env var, with prefix if present
+                    // 1. Set env path
                     if path_prefix.is_empty() {
                         std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
                     } else {
-                        // If prefix doesn't have a leading slash, add one
                         let prefixed_path = if path_prefix.starts_with('/') {
                             format!("{}{}", path_prefix, route_path)
                         } else {
@@ -276,65 +267,54 @@ impl StaticSiteGenerator {
                         info!("  Using prefixed path: {}", prefixed_path);
                     }
 
-                    // Set any route params as environment variables for access during rendering
-                    for (key, value) in &params {
-                        std::env::set_var(format!("YEW_SSG_PARAM_{}", key), value);
+                    // Route param envs
+                    for (k, v) in &params {
+                        std::env::set_var(format!("YEW_SSG_PARAM_{}", k), v);
                     }
 
-                    // 2. Render the root component
+                    // 2. Render
                     let content = self.render_base_component::<C>().await?;
 
-                    // 3. Clear environment variables
+                    // 3. Clear env
                     std::env::remove_var("YEW_SSG_CURRENT_PATH");
-                    for key in params.keys() {
-                        std::env::remove_var(format!("YEW_SSG_PARAM_{}", key));
+                    for k in params.keys() {
+                        std::env::remove_var(format!("YEW_SSG_PARAM_{}", k));
                     }
+                    Self::clear_current_language();
 
-                    // 4. Get metadata for the route, including parameter-specific metadata
+                    // 4. Metadata
                     let mut metadata = self
                         .config
-                        .get_metadata_for_parameterized_route(route_pattern_config, &params);
-
-                    metadata.insert("path".to_string(), route_path.to_string());
-
-                    // Add prefix to metadata if present
+                        .get_metadata_for_parameterized_route(pattern, &params);
+                    metadata.insert("path".to_string(), route_path.clone());
                     if !path_prefix.is_empty() {
                         metadata.insert("path_prefix".to_string(), path_prefix.clone());
                     }
 
-                    // 5. Generate outputs from all generators
+                    // 5. Generators
                     let mut generator_outputs = HashMap::new();
-
                     for generator in &self.config.generators.generators {
-                        // Generate the main output using the generator's name
                         let name = generator.name();
-                        let result = generator.generate(name, &route_path, &content, &metadata)?;
-                        generator_outputs.insert(name.to_string(), result);
+                        let main = generator.generate(name, &route_path, &content, &metadata)?;
+                        generator_outputs.insert(name.to_string(), main);
 
-                        // Check if generator supports additional outputs
                         if let Some(support) =
                             self.config.generators.try_get_output_support(generator)
                         {
-                            // Generate additional outputs
                             for key in support.supported_outputs() {
-                                // Skip the main output we already did
                                 if key == name {
                                     continue;
                                 }
-
-                                match generator.generate(key, &route_path, &content, &metadata) {
-                                    Ok(output) => {
-                                        generator_outputs.insert(key.to_string(), output);
-                                    }
-                                    Err(e) => {
-                                        warn!("Failed to generate '{}' output: {}", key, e);
-                                    }
+                                if let Ok(out) =
+                                    generator.generate(key, &route_path, &content, &metadata)
+                                {
+                                    generator_outputs.insert(key.to_string(), out);
                                 }
                             }
                         }
                     }
 
-                    // 6. Run processors on the content
+                    // 6. Processors
                     let processed_content = self.config.processors.process_all(
                         &content,
                         &metadata,
@@ -342,7 +322,7 @@ impl StaticSiteGenerator {
                         &content,
                     )?;
 
-                    // 7. Create the final HTML
+                    // 7. Final wrap
                     let html = self.wrap_html(
                         &processed_content,
                         &route_path,
@@ -350,23 +330,18 @@ impl StaticSiteGenerator {
                         &generator_outputs,
                     )?;
 
-                    // 8. Write to output file - use prefixed output path if prefix is set
+                    // 8. Write
                     let (dir_path, file_path) = if path_prefix.is_empty() {
                         self.determine_output_path(&route_path)
                     } else {
-                        // If prefix is set, add it to the output path
-                        // Ensure prefix doesn't have leading slash for file paths
                         let clean_prefix = path_prefix.trim_start_matches('/');
-
                         if route_path == "/" {
-                            // Special case for root route
                             let prefixed_dir = self.config.output_dir.join(clean_prefix);
                             (prefixed_dir.clone(), prefixed_dir.join("index.html"))
                         } else {
-                            // For other routes
-                            let path_component = route_path.trim_start_matches('/');
-                            let prefixed_path = format!("{}/{}", clean_prefix, path_component);
-                            let dir = self.config.output_dir.join(prefixed_path);
+                            let comp = route_path.trim_start_matches('/');
+                            let full = format!("{}/{}", clean_prefix, comp);
+                            let dir = self.config.output_dir.join(full);
                             (dir.clone(), dir.join("index.html"))
                         }
                     };
@@ -376,8 +351,8 @@ impl StaticSiteGenerator {
                     info!("  -> Saved to {:?}", file_path);
                 } else {
                     warn!(
-                        "No route recognized for constructed path: {} (from pattern {})",
-                        constructed_path, route_pattern_config
+                        "No route recognized for constructed path: {} (pattern {})",
+                        constructed_path, pattern
                     );
                 }
             }
@@ -387,7 +362,6 @@ impl StaticSiteGenerator {
             "Generated {} parameterized route pages in total",
             total_generated
         );
-
         Ok(())
     }
 
@@ -413,18 +387,16 @@ impl StaticSiteGenerator {
         C: BaseComponent<Properties = ()> + 'static,
         F: Fn(&HashMap<String, String>) -> R,
     {
-        // Check if we have parameters defined for this route
         let route_params = match self.config.route_params.get(route_pattern) {
-            Some(params) => params,
+            Some(p) => p,
             None => {
                 warn!("No parameters defined for route pattern: {}", route_pattern);
                 return Ok(());
             }
         };
 
-        // Generate all parameter combinations based on the config
-        let param_combinations = route_params.generate_param_combinations();
-        if param_combinations.is_empty() {
+        let combos = route_params.generate_param_combinations();
+        if combos.is_empty() {
             warn!(
                 "No valid parameter combinations for route pattern: {}",
                 route_pattern
@@ -434,75 +406,55 @@ impl StaticSiteGenerator {
 
         info!(
             "Generating {} variants for parameterized route: {}",
-            param_combinations.len(),
+            combos.len(),
             route_pattern
         );
 
-        // Generate a page for each parameter combination
-        for params in param_combinations {
-            // Build the route using the provided function
+        for params in combos {
             let route = route_builder(&params);
             let route_path = route.to_path();
-
             info!(
                 "Generating parameterized route: {} with params: {:?}",
                 route_path, params
             );
 
-            // 1. Set the YEW_SSG_CURRENT_PATH env var
             std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
-
-            // Set any route params as environment variables for access during rendering
-            for (key, value) in &params {
-                std::env::set_var(format!("YEW_SSG_PARAM_{}", key), value);
+            for (k, v) in &params {
+                std::env::set_var(format!("YEW_SSG_PARAM_{}", k), v);
             }
 
-            // 2. Render the root component
             let content = self.render_base_component::<C>().await?;
 
-            // 3. Clear environment variables
             std::env::remove_var("YEW_SSG_CURRENT_PATH");
-            for key in params.keys() {
-                std::env::remove_var(format!("YEW_SSG_PARAM_{}", key));
+            for k in params.keys() {
+                std::env::remove_var(format!("YEW_SSG_PARAM_{}", k));
             }
+            Self::clear_current_language();
 
-            // 4. Get metadata for the route, including parameter-specific metadata
             let mut metadata = self
                 .config
                 .get_metadata_for_parameterized_route(route_pattern, &params);
-            metadata.insert("path".to_string(), route_path.to_string());
+            metadata.insert("path".to_string(), route_path.clone());
 
-            // 5. Generate outputs from all generators
             let mut generator_outputs = HashMap::new();
-
             for generator in &self.config.generators.generators {
-                // Generate the main output using the generator's name
                 let name = generator.name();
-                let result = generator.generate(name, &route_path, &content, &metadata)?;
-                generator_outputs.insert(name.to_string(), result);
+                let main = generator.generate(name, &route_path, &content, &metadata)?;
+                generator_outputs.insert(name.to_string(), main);
 
-                // Check if generator supports additional outputs
                 if let Some(support) = self.config.generators.try_get_output_support(generator) {
-                    // Generate additional outputs
                     for key in support.supported_outputs() {
-                        // Skip the main output we already did
                         if key == name {
                             continue;
                         }
-
-                        match generator.generate(key, &route_path, &content, &metadata) {
-                            Ok(output) => {
-                                generator_outputs.insert(key.to_string(), output);
-                            }
-                            Err(e) => {
-                                warn!("Failed to generate '{}' output: {}", key, e);
-                            }
+                        if let Ok(extra) = generator.generate(key, &route_path, &content, &metadata)
+                        {
+                            generator_outputs.insert(key.to_string(), extra);
                         }
                     }
                 }
             }
 
-            // 6. Run processors on the content
             let processed_content = self.config.processors.process_all(
                 &content,
                 &metadata,
@@ -510,7 +462,6 @@ impl StaticSiteGenerator {
                 &content,
             )?;
 
-            // 7. Create the final HTML
             let html = self.wrap_html(
                 &processed_content,
                 &route_path,
@@ -518,7 +469,6 @@ impl StaticSiteGenerator {
                 &generator_outputs,
             )?;
 
-            // 8. Write to output file
             let (dir_path, file_path) = self.determine_output_path(&route_path);
             fs::create_dir_all(&dir_path)?;
             fs::write(&file_path, html)?;

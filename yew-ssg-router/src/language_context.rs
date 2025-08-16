@@ -1,4 +1,9 @@
+use std::cell::RefCell;
 use yew::prelude::*;
+
+thread_local! {
+    static CURRENT_LANGUAGE: RefCell<Option<String>> = RefCell::new(None);
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LanguageContext {
@@ -43,6 +48,44 @@ impl LanguageContext {
             dir: TextDirection::LTR,
         }
     }
+
+    /// Set the current language in thread-local storage
+    pub fn set_thread_local_lang(lang: &str) {
+        CURRENT_LANGUAGE.with(|current| {
+            *current.borrow_mut() = Some(lang.to_string());
+        });
+    }
+
+    /// Get the current language from thread-local storage
+    pub fn get_thread_local_lang() -> Option<String> {
+        CURRENT_LANGUAGE.with(|current| current.borrow().clone())
+    }
+
+    /// Clear the thread-local language
+    pub fn clear_thread_local_lang() {
+        CURRENT_LANGUAGE.with(|current| {
+            *current.borrow_mut() = None;
+        });
+    }
+
+    /// Get the current language from various sources in priority order:
+    /// 1. Thread-local storage
+    /// 2. Environment variable YEW_SSG_CURRENT_LANG
+    /// 3. Default fallback
+    pub fn get_current_lang() -> String {
+        // First try thread-local
+        if let Some(lang) = Self::get_thread_local_lang() {
+            return lang;
+        }
+
+        // Then try environment variable
+        if let Ok(lang) = std::env::var("YEW_SSG_CURRENT_LANG") {
+            return lang;
+        }
+
+        // Finally use default
+        "en".to_string()
+    }
 }
 
 /// Properties for the LanguageProvider component
@@ -59,6 +102,9 @@ pub struct LanguageProviderProps {
 pub fn language_provider(props: &LanguageProviderProps) -> Html {
     let context = LanguageContext::new(&props.lang);
 
+    // Set the thread-local language when provider is created
+    LanguageContext::set_thread_local_lang(&props.lang);
+
     html! {
         <ContextProvider<LanguageContext> context={context}>
             {props.children.clone()}
@@ -69,5 +115,12 @@ pub fn language_provider(props: &LanguageProviderProps) -> Html {
 /// Hook to access the current language context
 #[hook]
 pub fn use_language() -> LanguageContext {
-    use_context::<LanguageContext>().unwrap_or_else(LanguageContext::fallback)
+    // First try to get from Yew context
+    if let Some(context) = use_context::<LanguageContext>() {
+        return context;
+    }
+
+    // Fallback to thread-local or environment variable
+    let lang = LanguageContext::get_current_lang();
+    LanguageContext::new(lang)
 }
