@@ -57,8 +57,8 @@
 
         
 <script type="module">
-import init, * as bindings from '/yew-ssg/about-page-c3767ababbde3b4d.js';
-const wasm = await init({ module_or_path: '/yew-ssg/about-page-c3767ababbde3b4d_bg.wasm' });
+import init, * as bindings from '/yew-ssg/about-page-96c701c2e0e0b5a9.js';
+const wasm = await init({ module_or_path: '/yew-ssg/about-page-96c701c2e0e0b5a9_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -79,7 +79,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
                 font-weight: bold;
             }
         </style>
-    <link rel="modulepreload" href="/yew-ssg/about-page-c3767ababbde3b4d.js" crossorigin="anonymous" integrity="sha384-5v3hi2+DyJkn99hm52+u6JUBkNvG21CcH8E1h0x9snJ8feRE/KFDcqdB7Z8v1HbJ"><link rel="preload" href="/yew-ssg/about-page-c3767ababbde3b4d_bg.wasm" crossorigin="anonymous" integrity="sha384-VDRiyc3GdJ1t1QtwCfkt0SqznUIZfI9ZgMr7CHpcqqOrbhXPSgm0Yjg6aUAI8pju" as="fetch" type="application/wasm"></head>
+    <link rel="modulepreload" href="/yew-ssg/about-page-96c701c2e0e0b5a9.js" crossorigin="anonymous" integrity="sha384-rhUwBpq5lOtakxDa1evmyeOodl7RN7VVwaYi0z75zT97DCfMrYGhLGlUG++7Iwh6"><link rel="preload" href="/yew-ssg/about-page-96c701c2e0e0b5a9_bg.wasm" crossorigin="anonymous" integrity="sha384-GAVJK8f2Yb9n8YOPecIDH5B+FKknOT3rxbvn3KBTFrqh5fP8TuvPtOqzJ4zZ5Mol" as="fetch" type="application/wasm"></head>
     <body>
         <style>
             body {
@@ -100,108 +100,122 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 </blockquote>
 <h2>Features</h2>
 <ul>
-<li>🚀 Pre-renders Yew applications to static HTML</li>
-<li>🔄 Works with yew-router for multi-page applications</li>
-<li>📝 Customizable HTML templates with variable substitution</li>
-<li>🎯 Advanced attribute-based templating system</li>
-<li>🧩 Extensible generator plugin system</li>
-<li>🔍 Built-in SEO generators (meta tags, Open Graph, Twitter Cards)</li>
-<li>🌐 Internationalization and localization support</li>
+<li>🚀 Pre-renders Yew applications to static HTML (SSR → static)</li>
+<li>🔄 Works with (and ships an SSG‑optimized fork of) yew-router</li>
+<li>📝 Customizable HTML templates (MiniJinja + attribute directives)</li>
+<li>🎯 Advanced attribute-based templating (<code>data-ssg</code>, <code>data-ssg-*</code>, <code>data-ssg-placeholder</code>)</li>
+<li>🧩 Extensible generator plugin system (meta, OG, Twitter, JSON-LD, etc.)</li>
+<li>🔍 Built-in SEO generators (meta tags, Open Graph, Twitter Cards, canonical / hreflang, robots)</li>
+<li>🌐 Internationalization and localization with localized routes + language negotiation</li>
+<li>🧠 Thread‑local + environment based language context for multi-lingual generation</li>
 <li>🤖 Robots meta tag support</li>
-<li>🔀 Flexible processing pipeline</li>
+<li>🔀 Flexible, pluggable processing pipeline</li>
+<li>🧪 Parameterized routes (e.g. <code>/crate/:id</code>) with metadata variants</li>
+<li>🧱 JSON / YAML configuration loader</li>
 </ul>
 <h2>Installation</h2>
-<p>Add <code>yew-ssg</code> to your <code>Cargo.toml</code>:</p>
-<pre><code class="language-toml">[dependencies]
-yew-ssg = &quot;0.1.0&quot;
-</code></pre>
-<p>For SSG functionality, enable the necessary features:</p>
+<p>Add <code>yew-ssg</code> to your <code>Cargo.toml</code> (current workspace version is <code>0.2.1</code> – adjust as needed):</p>
 <pre><code class="language-toml">[dependencies]
 yew = { version = &quot;0.21&quot;, features = [&quot;csr&quot;] }
-yew-ssg = { optional = true }
+yew-ssg = &quot;0.2.2&quot;
+</code></pre>
+<p>If you only generate static pages in a separate binary, you can make it feature-gated:</p>
+<pre><code class="language-toml">[dependencies]
+yew = { version = &quot;0.21&quot;, features = [&quot;csr&quot;] }
+yew-ssg = { version = &quot;0.2.1&quot;, optional = true }
 
 [features]
 ssg = [&quot;yew/ssr&quot;, &quot;yew-ssg&quot;]
 </code></pre>
-<h3>Router Integration</h3>
-<p>yew-ssg includes its own router implementation (<code>yew-ssg-router</code>) that's optimized for static site generation. To use it:</p>
+<h2>Router Integration</h2>
+<p>For static generation you can use the provided <code>yew-ssg-router</code> (a compatibility shim around <code>yew-router</code> that swaps components under the <code>ssg</code> feature):</p>
 <pre><code class="language-toml">[dependencies]
-# Use yew-ssg-router from the repository
+# Use the SSG-aware router (workspace path or git)
 yew_router = { git = &quot;https://github.com/chriamue/yew-ssg&quot;, package = &quot;yew-ssg-router&quot; }
 
-# Enable SSG features in your project
 [features]
 ssg = [&quot;yew/ssr&quot;, &quot;yew-ssg&quot;, &quot;yew_router/ssg&quot;]
 </code></pre>
-<p>The router provides SSG-compatible versions of the standard router components:</p>
+<p>When <code>feature = &quot;ssg&quot;</code>:</p>
 <ul>
-<li><code>BrowserRouter</code> - For client-side routing</li>
-<li><code>Link</code> - For navigation links</li>
-<li><code>Switch</code> - For route matching and rendering</li>
+<li><code>BrowserRouter</code> → <code>StaticRouter</code></li>
+<li><code>Link</code> → <code>StaticLink</code></li>
+<li><code>Switch</code> → <code>StaticSwitch</code></li>
+<li>Localized versions adapt automatically.</li>
 </ul>
-<p>During development, these components work like normal client-side routing components. During static site generation, they automatically switch to their static counterparts when the <code>ssg</code> feature is enabled.</p>
-<p>Your application code remains the same - just use the router components as you normally would:</p>
+<p>Usage stays the same:</p>
 <pre><code class="language-rust">use yew::prelude::*;
 use yew_router::prelude::*;
 
+#[derive(Clone, Routable, PartialEq, Debug)]
+enum Route {
+    #[at(&quot;/&quot;)] Home,
+    #[at(&quot;/about&quot;)] About,
+}
+
+fn switch(route: Route) -&gt; Html {
+    match route {
+        Route::Home =&gt; html!(&quot;Home&quot;),
+        Route::About =&gt; html!(&quot;About&quot;),
+    }
+}
+
 #[function_component(App)]
-pub fn app() -&gt; Html {
+fn app() -&gt; Html {
     html! {
         &lt;BrowserRouter&gt;
-            &lt;Link&lt;Route&gt; to={Route::Home}&gt;{&quot;Home&quot;}&lt;/Link&lt;Route&gt;&gt;
-            &lt;Switch&lt;Route&gt; render={switch_route} /&gt;
+            &lt;nav&gt;
+                &lt;Link&lt;Route&gt; to={Route::Home}&gt;{&quot;Home&quot;}&lt;/Link&lt;Route&gt;&gt;
+                &lt;Link&lt;Route&gt; to={Route::About}&gt;{&quot;About&quot;}&lt;/Link&lt;Route&gt;&gt;
+            &lt;/nav&gt;
+            &lt;Switch&lt;Route&gt; render={switch} /&gt;
         &lt;/BrowserRouter&gt;
     }
 }
 </code></pre>
-<p>The <code>yew-ssg-router</code> package handles all the complexity of static site generation behind the scenes, ensuring your routes work both during development and in the generated static output.</p>
 <h2>Quick Start</h2>
 <ol>
-<li>Create a standard Yew application with routing</li>
-<li>Add an SSG binary to your project</li>
-<li>Run the SSG binary to generate static HTML</li>
+<li>Add <code>yew-ssg</code> and optional <code>yew-ssg-router</code></li>
+<li>Create an SSG binary (e.g. <code>src/bin/ssg.rs</code>)</li>
+<li>Run it (e.g. <code>cargo run --bin ssg --features ssg</code>)</li>
+<li>Deploy generated <code>dist/</code> directory to static hosting</li>
 </ol>
 <p>Example SSG binary:</p>
-<pre><code class="language-rust">use my_app::route::Route;
-use my_app::switch_route::switch_route;
+<pre><code class="language-rust">use my_app::App;
+use my_app::Route;
 use yew_ssg::prelude::*;
-use std::collections::HashMap;
 
 #[tokio::main]
-async fn main() {
-    // Configure the SSG
+async fn main() -&gt; anyhow::Result&lt;()&gt; {
+    // Build config
     let config = SsgConfigBuilder::new()
         .output_dir(&quot;dist&quot;)
-        // Add built-in generators
         .add_generator(MetaTagGenerator {
-            default_description: &quot;My site description&quot;.to_string(),
-            default_keywords: vec![&quot;yew&quot;.to_string(), &quot;rust&quot;.to_string()],
+            default_description: &quot;My site description&quot;.into(),
+            default_keywords: vec![&quot;yew&quot;.into(), &quot;rust&quot;.into()],
         })
         .add_generator(OpenGraphGenerator {
-            site_name: &quot;My Site&quot;.to_string(),
-            default_image: &quot;/images/default.jpg&quot;.to_string(),
+            site_name: &quot;My Site&quot;.into(),
+            default_image: &quot;/images/default.jpg&quot;.into(),
         })
         .build();
 
-    // Initialize the generator
-    let generator = StaticSiteGenerator::new(config)
-        .expect(&quot;Failed to create generator&quot;);
+    // Initialize
+    let generator = StaticSiteGenerator::new(config)?;
 
-    // Generate static files
-    generator.generate::&lt;Route, _&gt;(switch_route).await
-        .expect(&quot;Failed to generate static site&quot;);
+    // Generate pages for all Route variants
+    generator.generate::&lt;Route, App&gt;().await?;
 
-    println!(&quot;✅ Static site generated successfully!&quot;);
+    println!(&quot;✅ Static site generated in dist/&quot;);
+    Ok(())
 }
 </code></pre>
 <h2>Localization Support</h2>
-<p>The <code>yew-ssg</code> package includes robust support for building multilingual sites using different approaches:</p>
-<h3>Using the Localized Route Macro</h3>
-<p>The easiest way to add localization to your routes is using the <code>impl_localized_route!</code> macro:</p>
+<p>You can produce localized variants of each route (e.g. <code>/</code>, <code>/de/</code>, <code>/fr/about</code>, …). Two approaches:</p>
+<h3>1. Macro <code>impl_localized_route!</code></h3>
 <pre><code class="language-rust">use yew_router::prelude::*;
 use strum_macros::EnumIter;
 
-// First, define your base routes
 #[derive(Clone, Routable, PartialEq, Debug, EnumIter, Default)]
 pub enum Route {
     #[at(&quot;/&quot;)]
@@ -209,18 +223,14 @@ pub enum Route {
     Home,
     #[at(&quot;/about&quot;)]
     About,
-    // ... more routes
 }
 
-// Define your supported languages
 pub const SUPPORTED_LANGUAGES: &amp;[&amp;str] = &amp;[&quot;en&quot;, &quot;de&quot;, &quot;fr&quot;];
 pub const DEFAULT_LANGUAGE: &amp;str = &quot;en&quot;;
 
-// Generate the LocalizedRoute type with a single macro call
 impl_localized_route!(Route, LocalizedRoute, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE);
 </code></pre>
-<h3>Using the LocalizedRoutable Derive Macro</h3>
-<p>Alternatively, you can use the derive macro for even simpler implementation:</p>
+<h3>2. Derive Macro <code>LocalizedRoutable</code></h3>
 <pre><code class="language-rust">use yew_router::prelude::*;
 use strum_macros::EnumIter;
 use yew_ssg_router_macros::LocalizedRoutable;
@@ -239,219 +249,217 @@ pub enum Route {
     About,
 }
 </code></pre>
-<h3>Using Localized Routes</h3>
-<p>The localized routes work seamlessly with the <code>LocalizedApp</code> and <code>LocalizedSwitch</code> components:</p>
+<h3>Localized App Integration</h3>
 <pre><code class="language-rust">#[function_component(App)]
 pub fn app() -&gt; Html {
     html! {
         &lt;LocalizedApp&lt;LocalizedRoute&gt;&gt;
             &lt;nav&gt;
-                // Example link with localization
                 &lt;Link&lt;LocalizedRoute&gt; to={LocalizedRoute::from_route(Route::Home, Some(&quot;en&quot;))}&gt;
-                    { &quot;Home&quot; }
+                    {&quot;English Home&quot;}
                 &lt;/Link&lt;LocalizedRoute&gt;&gt;
             &lt;/nav&gt;
-
-            // Switch that handles both localized and non-localized routes
             &lt;LocalizedSwitch&lt;LocalizedRoute&gt; render={switch_route} /&gt;
         &lt;/LocalizedApp&lt;LocalizedRoute&gt;&gt;
     }
 }
 </code></pre>
 <h3>Language Negotiation</h3>
-<p>For browser-based language detection, you can use the <code>LanguageNegotiator</code>:</p>
-<pre><code class="language-rust">use yew_router::prelude::*;
-
-// Create a language negotiator
-let negotiator = LanguageNegotiator::from_static(
-    &amp;[&quot;en&quot;, &quot;de&quot;, &quot;fr&quot;],
-    &quot;en&quot; // default
+<p>Use <code>LanguageNegotiator</code> to map <code>Accept-Language</code> to a supported code:</p>
+<pre><code class="language-rust">let negotiator = LanguageNegotiator::from_static(&amp;[&quot;en&quot;,&quot;de&quot;,&quot;fr&quot;], &quot;en&quot;);
+let preferred = negotiator.negotiate_from_header(
+    Some(&quot;de-CH,de;q=0.8,en-US;q=0.6,en;q=0.5&quot;)
 );
-
-// In your app, detect user's preferred language
-let accept_language = get_accept_language_header();
-let best_language = negotiator.negotiate_from_header(accept_language);
 </code></pre>
-<h2>Template System</h2>
-<h3>Basic Template Variables ✨</h3>
-<p>Use double curly braces for variable substitution:</p>
-<pre><code class="language-html">&lt;title&gt;{{ title }}&lt;/title&gt;
-&lt;meta name=&quot;description&quot; content=&quot;{{ description }}&quot;&gt;
-</code></pre>
-<h3>Attribute-Based Templating 🔧</h3>
-<p>The attribute processor provides three powerful ways to template your HTML:</p>
+<h2>Language Context &amp; Thread‑Local Support</h2>
+<p>The router / localization layer maintains language in two coordinated places:</p>
+<p>Priority order when reading current language:</p>
 <ol>
-<li><code>data-ssg</code>: Content replacement</li>
-<li><code>data-ssg-*</code>: Attribute value replacement</li>
-<li><code>data-ssg-placeholder</code>: Complete element replacement</li>
+<li>Thread-local (set by <code>LanguageProvider</code>)</li>
+<li><code>YEW_SSG_CURRENT_LANG</code> environment variable</li>
+<li>Default fallback (usually <code>&quot;en&quot;</code>)</li>
 </ol>
-<h4>Content Replacement with data-ssg 📄</h4>
-<p>Replace element content with generated or metadata values:</p>
-<pre><code class="language-html">&lt;!-- Replaces content with generated title or metadata title --&gt;
-&lt;title data-ssg=&quot;title&quot;&gt;Default Title&lt;/title&gt;
+<p>Utilities:</p>
+<pre><code class="language-rust">use yew_ssg_router::LanguageUtils;
 
-&lt;!-- Special case for main content --&gt;
-&lt;div data-ssg=&quot;content&quot;&gt;Loading...&lt;/div&gt;
+// Scoped execution
+LanguageUtils::with_language(&quot;de&quot;, || {
+    // Any SSR rendering here sees language = &quot;de&quot;
+});
 
-&lt;!-- Uses metadata value with fallback to default --&gt;
-&lt;h1 data-ssg=&quot;page_heading&quot;&gt;Default Heading&lt;/h1&gt;
+// Manual set/clear
+LanguageUtils::set_generation_language(&quot;fr&quot;);
+let current = LanguageUtils::detect_language();
+LanguageUtils::clear_generation_language();
 </code></pre>
-<p>The processor looks for content in this order:</p>
-<ol>
-<li>Generated content from generators</li>
-<li>Metadata values</li>
-<li>If no replacement is found, the original content is preserved</li>
-</ol>
-<h4>Attribute Replacement with data-ssg-* 🏷️</h4>
-<p>Update specific attributes with generated or metadata values:</p>
-<pre><code class="language-html">&lt;!-- Update the content attribute --&gt;
-&lt;meta name=&quot;description&quot;
-      data-ssg-content=&quot;description&quot;
-      content=&quot;Default description&quot;&gt;
-
-&lt;!-- Update the href attribute --&gt;
-&lt;link rel=&quot;canonical&quot;
-      data-ssg-href=&quot;canonical_url&quot;
-      href=&quot;https://example.com&quot;&gt;
-
-&lt;!-- Multiple attributes on one element --&gt;
-&lt;meta data-ssg-content=&quot;meta-content&quot;
-      data-ssg-name=&quot;meta-name&quot;
-      content=&quot;default-content&quot;
-      name=&quot;default-name&quot;&gt;
+<p>You rarely need to call these manually if you use <code>&lt;LocalizedApp&lt;...&gt;&gt;</code> / <code>&lt;LanguageProvider&gt;</code>.</p>
+<h2>Parameterized Routes</h2>
+<p>Define patterns like <code>/crate/:id</code> with a list of allowed values &amp; variant metadata in YAML/JSON config. The generator will produce one page per combination.</p>
+<p>Example YAML snippet:</p>
+<pre><code class="language-yaml">parameterized_routes:
+  - pattern: &quot;/crate/:id&quot;
+    parameters:
+      - name: &quot;id&quot;
+        values: [&quot;yew-ssg&quot;, &quot;yew-ssg-router&quot;]
+    variants:
+      - values: { id: &quot;yew-ssg&quot; }
+        metadata:
+          title: &quot;yew-ssg | Static Site Generator&quot;
+      - values: { id: &quot;yew-ssg-router&quot; }
+        metadata:
+          title: &quot;yew-ssg-router | Router Integration&quot;
 </code></pre>
-<h4>Complete Element Replacement with data-ssg-placeholder 🔄</h4>
-<p>Replace the entire element with generated content:</p>
-<pre><code class="language-html">&lt;!-- Meta tags will be inserted here, replacing the entire div --&gt;
-&lt;div data-ssg-placeholder=&quot;meta_tags&quot;&gt;Loading meta tags...&lt;/div&gt;
-
-&lt;!-- Open Graph tags will be inserted here --&gt;
-&lt;div data-ssg-placeholder=&quot;open_graph&quot;&gt;Loading Open Graph tags...&lt;/div&gt;
-
-&lt;!-- Twitter Card tags will be inserted here --&gt;
-&lt;div data-ssg-placeholder=&quot;twitter_card&quot;&gt;Loading Twitter Card tags...&lt;/div&gt;
+<p>Then call:</p>
+<pre><code class="language-rust">generator.generate_parameterized_routes::&lt;LocalizedRoute, App&gt;().await?;
 </code></pre>
-<p>Placeholders can insert any HTML, including multiple elements, which makes them perfect for injecting blocks of meta tags or other complex structures.</p>
-<h3>Metadata Configuration 📋</h3>
-<p>Add global and route-specific metadata:</p>
-<pre><code class="language-rust">let config = SsgConfigBuilder::new()
-    .output_dir(&quot;dist&quot;)
-    .global_metadata(HashMap::from([
-        (&quot;site_name&quot;.to_string(), &quot;My Awesome Site&quot;.to_string()),
-        (&quot;author&quot;.to_string(), &quot;Jane Doe&quot;.to_string()),
-    ]))
-    .route_metadata(&quot;/about&quot;, HashMap::from([
-        (&quot;title&quot;.to_string(), &quot;About Us&quot;.to_string()),
-        (&quot;description&quot;.to_string(), &quot;Learn about our company&quot;.to_string()),
-        (&quot;canonical_url&quot;.to_string(), &quot;https://example.com/about&quot;.to_string()),
-    ]))
-    .build();
+<h2>Configuration (YAML / JSON)</h2>
+<p>Load external config:</p>
+<pre><code class="language-rust">use yew_ssg::config_loader::load_config;
+
+let cfg = load_config(&quot;config.yaml&quot;)?;
+let generator = StaticSiteGenerator::new(cfg)?;
+generator.generate::&lt;Route, App&gt;().await?;
 </code></pre>
-<h3>Built-in Generators 🛠️</h3>
-<p>yew-ssg includes several built-in generators:</p>
+<p>Supports:</p>
 <ul>
-<li><code>MetaTagGenerator</code>: Basic meta tags</li>
-<li><code>OpenGraphGenerator</code>: Open Graph protocol tags</li>
-<li><code>TwitterCardGenerator</code>: Twitter Card meta tags</li>
-<li><code>RobotsMetaGenerator</code>: Robots meta tag</li>
-<li><code>TitleGenerator</code>: HTML title tag</li>
-<li><code>CanonicalLinkGenerator</code>: Canonical and alternate language links</li>
-<li><code>JsonLdGenerator</code>: JSON-LD structured data for rich search results</li>
+<li><code>general.output_dir</code></li>
+<li><code>general.template_path</code> / inline template</li>
+<li><code>global_metadata</code></li>
+<li><code>routes[]</code></li>
+<li><code>parameterized_routes[]</code></li>
+<li>Asset &amp; JSON-LD base directories</li>
+<li>Canonical / alternate language behavior</li>
 </ul>
-<p>Example configuration:</p>
-<pre><code class="language-rust">let config = SsgConfigBuilder::new()
-    .add_generator(MetaTagGenerator {
-        default_description: &quot;Site description&quot;.to_string(),
-        default_keywords: vec![&quot;rust&quot;.to_string(), &quot;yew&quot;.to_string()],
-    })
-    .add_generator(OpenGraphGenerator {
-        site_name: &quot;My Site&quot;.to_string(),
-        default_image: &quot;/images/og-default.jpg&quot;.to_string(),
-    })
-    .add_generator(TwitterCardGenerator {
-        twitter_site: Some(&quot;@mysite&quot;.to_string()),
-        default_card_type: &quot;summary_large_image&quot;.to_string(),
-    })
-    .build();
+<h2>Template System</h2>
+<h3>Variable Substitution</h3>
+<p>MiniJinja variables inside your HTML template:</p>
+<pre><code class="language-html">&lt;title&gt;{{ title }}&lt;/title&gt;
+{{ meta_tags | safe }}
 </code></pre>
-<h3>Generator Output Priority ⚡</h3>
-<p>When multiple sources can provide content for a template variable or attribute:</p>
+<h3>Attribute / Element Directives</h3>
+<p>Directive forms:</p>
 <ol>
-<li>Generator outputs have highest priority</li>
-<li>Generator-computed values come next</li>
-<li>Metadata values are used as fallback</li>
-<li>Original content is preserved if no replacement is found</li>
+<li><code>data-ssg=&quot;key&quot;</code> – replace element content</li>
+<li><code>data-ssg-ATTR=&quot;key&quot;</code> – replace specific attribute value</li>
+<li><code>data-ssg-placeholder=&quot;key&quot;</code> – replace entire element with generated HTML block</li>
 </ol>
-<p>This allows flexibility in combining different content sources while maintaining a clear precedence order.</p>
-<h3>Custom Generators 🧰</h3>
-<p>Implement your own generators:</p>
+<p>Priority resolution:</p>
+<ol>
+<li>Generator-produced output</li>
+<li>Metadata</li>
+<li>Preserve original content (unless special-case like <code>content</code>)</li>
+</ol>
+<h3>Example</h3>
+<pre><code class="language-html">&lt;title data-ssg=&quot;title&quot;&gt;Fallback Title&lt;/title&gt;
+&lt;meta name=&quot;description&quot; data-ssg-content=&quot;description_content&quot; content=&quot;Default desc&quot;&gt;
+&lt;div data-ssg-placeholder=&quot;open_graph&quot;&gt;&lt;/div&gt;
+</code></pre>
+<h2>Built-in Generators</h2>
+<p>| Generator | Purpose |
+|-----------|---------|
+| <code>TitleGenerator</code> | <code>&lt;title&gt;</code> tag + plain text variant |
+| <code>MetaTagGenerator</code> | description / keywords / canonical |
+| <code>CanonicalLinkGenerator</code> | canonical + hreflang alternates |
+| <code>OpenGraphGenerator</code> | OG meta tags |
+| <code>TwitterCardGenerator</code> | Twitter card tags |
+| <code>RobotsMetaGenerator</code> | robots meta tag |
+| <code>JsonLdGenerator</code> | JSON-LD (inline or file-based) |</p>
+<p>Add programmatically via <code>SsgConfigBuilder::add_generator(...)</code> or rely on defaults.</p>
+<h2>Custom Generator Example</h2>
 <pre><code class="language-rust">#[derive(Debug, Clone)]
-pub struct CustomGenerator;
+struct CustomGenerator;
 
 impl Generator for CustomGenerator {
-    fn name(&amp;self) -&gt; &amp;'static str {
-        &quot;custom_generator&quot;
-    }
+    fn name(&amp;self) -&gt; &amp;'static str { &quot;custom_block&quot; }
 
     fn generate(
         &amp;self,
         key: &amp;str,
-        route: &amp;str,
-        content: &amp;str,
+        _route: &amp;str,
+        _content: &amp;str,
         metadata: &amp;HashMap&lt;String, String&gt;,
-    ) -&gt; Result&lt;String, Box&lt;dyn Error&gt;&gt; {
-        Ok(format!(&quot;&lt;custom-element&gt;{}&lt;/custom-element&gt;&quot;,
-                  metadata.get(&quot;custom&quot;).unwrap_or(&amp;String::new())))
+    ) -&gt; Result&lt;String, Box&lt;dyn std::error::Error&gt;&gt; {
+        if key == &quot;custom_block&quot; {
+            Ok(format!(&quot;&lt;section&gt;{}&lt;/section&gt;&quot;,
+                metadata.get(&quot;custom&quot;).unwrap_or(&amp;&quot;&quot;.into())))
+        } else {
+            Err(format!(&quot;Unsupported key {key}&quot;).into())
+        }
     }
 
-    fn supports_output(&amp;self, key: &amp;str) -&gt; bool {
-        key == &quot;custom_element&quot;
-    }
-
-    fn clone_box(&amp;self) -&gt; Box&lt;dyn Generator&gt; {
-        Box::new(self.clone())
-    }
-
-    fn as_any(&amp;self) -&gt; &amp;dyn Any {
-        self
-    }
+    fn clone_box(&amp;self) -&gt; Box&lt;dyn Generator&gt; { Box::new(self.clone()) }
+    fn as_any(&amp;self) -&gt; &amp;dyn std::any::Any { self }
 }
 </code></pre>
-<h2>Processing Pipeline 🔄</h2>
-<p>The yew-ssg processing pipeline consists of:</p>
+<p>Use in template: <code>{{ custom_block | safe }}</code> or <code>&lt;div data-ssg-placeholder=&quot;custom_block&quot;&gt;&lt;/div&gt;</code>.</p>
+<h2>Processing Pipeline</h2>
 <ol>
-<li><strong>Content generation</strong> 📝: Pre-renders Yew components to HTML</li>
-<li><strong>Template processing</strong> 🧩: Applies HTML templates with variables</li>
-<li><strong>Attribute processing</strong> 🔍: Processes special data-ssg attributes</li>
-<li><strong>Output generation</strong> 📤: Writes files to the output directory</li>
+<li>Render Yew component (SSR → HTML fragment)</li>
+<li>Fill template (MiniJinja)</li>
+<li>Variable replacement processor (<code>{{ var }}</code>)</li>
+<li>Attribute / placeholder processor (<code>data-ssg-*</code>)</li>
+<li>Write output to <code>dist/&lt;route&gt;/index.html</code></li>
 </ol>
-<p>Each stage can be customized or extended as needed.</p>
-<h2>Documentation 📚</h2>
-<p>For more detailed architecture documentation, check out:</p>
+<p>Both processors can be replaced or supplemented with custom implementations.</p>
+<h2>Environment Variables (Build-Time)</h2>
+<p>| Variable | Purpose |
+|----------|---------|
+| <code>YEW_SSG_CURRENT_PATH</code> | Current route path during generation (internal) |
+| <code>YEW_SSG_CURRENT_PATH_PREFIX</code> | Optional path prefix for output (e.g. GitHub Pages subdir) |
+| <code>YEW_SSG_CURRENT_LANG</code> | Current language fallback (if thread-local not set) |
+| <code>YEW_SSG_PARAM_*</code> | Parameter values during parameterized route generation |
+| <code>BASE_URL</code> | Used by router utilities to build absolute links |
+| <code>YEW_SSG_PARAM_&lt;name&gt;</code> | Dynamic route parameter injection |</p>
+<h2>Testing</h2>
+<p>Some tests (not exhaustive):</p>
 <ul>
-<li><a href="https://blog.chriamue.de/yew-ssg/docs/">Architecture Documentation (arc42)</a></li>
+<li>Generators (individual outputs &amp; priority)</li>
+<li>Attribute processor scenarios</li>
+<li>Canonical + alternates &amp; translation behavior</li>
+<li>JSON/YAML config loader</li>
+<li>Thread-local + env language context (new tests)</li>
+<li>Localized route macro + iterator</li>
 </ul>
-<h2>Example Projects 🔍</h2>
-<p>Check out the examples directory for complete project examples:</p>
+<p>To run:</p>
+<pre><code class="language-bash">cargo test
+</code></pre>
+<p>If you add the optional SSR integration test for language context, ensure:</p>
+<pre><code class="language-toml">[dev-dependencies]
+tokio = { version = &quot;1&quot;, features = [&quot;rt&quot;,&quot;macros&quot;] }
+</code></pre>
+<h2>Example Project</h2>
+<p>See <code>examples/about-page</code> for:</p>
 <ul>
-<li><code>examples/about-page</code>: Basic example</li>
+<li>Localization</li>
+<li>Parameterized routes</li>
+<li>JSON-LD file injection</li>
+<li>Attribute-based SEO tag insertion</li>
+</ul>
+<h2>Roadmap / Ideas</h2>
+<ul>
+<li>Asset hashing + manifest injection</li>
+<li>Incremental / selective regeneration</li>
+<li>Partial hydration helpers</li>
+<li>More robust error reporting &amp; tracing</li>
+<li>Parallel route rendering</li>
 </ul>
 <h2>Project Status 🚧</h2>
 <ul>
-<li>⚠️ <strong>Alpha Stage</strong>: Expect breaking changes and incomplete features</li>
-<li>🔬 <strong>Experimental</strong>: Created primarily for personal projects</li>
-<li>📈 <strong>Development</strong>: Sporadic updates based on personal needs</li>
-<li>🧪 <strong>Testing</strong>: Limited test coverage, use at your own risk</li>
+<li>⚠️ <strong>Alpha Stage</strong> – Breaking changes likely</li>
+<li>🧪 <strong>Experimental</strong> – Built for personal exploration</li>
+<li>📉 <strong>Limited maintenance</strong> – PRs welcome but not guaranteed</li>
+<li>🔍 <strong>Partial test coverage</strong> – Use with caution</li>
 </ul>
 <h2>Contributing 🤝</h2>
-<p>While this is primarily a personal project, feedback and contributions are welcome! Feel free to:</p>
+<p>Welcome (with the above caveats):</p>
 <ul>
-<li>Open issues for bugs or feature suggestions</li>
-<li>Submit pull requests for improvements</li>
-<li>Fork the project for your own needs</li>
+<li>File issues / feature discussions</li>
+<li>Small focused PRs</li>
+<li>Documentation improvements</li>
+<li>Example expansions</li>
 </ul>
 <h2>License 📄</h2>
-<p>This project is licensed under the MIT License - see the <a href="LICENSE">LICENSE</a> file for details.</p>
+<p>MIT – see <a href="LICENSE">LICENSE</a>.</p>
 <!--</#>--></div></div><!--</[about_page::readme::ReadmePage]>--><!--</[yew_ssg_router::localized_switch::LocalizedSwitch<about_page::route::LocalizedRoute>]>--></main><!--</[about_page::app::AppContent]>--><!--</[yew::context::ContextProvider<yew_ssg_router::static_navigator::StaticNavigator>]>--><!--</[yew_ssg_router::static_navigator::StaticNavigatorProvider]>--><!--</[yew_ssg_router::static_router::StaticRouter]>--><!--</[yew::context::ContextProvider<yew_ssg_router::language_context::LanguageContext>]>--><!--</[yew_ssg_router::language_context::LanguageProvider]>--><!--</[yew_ssg_router::localized_app::LocalizedApp<about_page::route::LocalizedRoute>]>--><!--</[about_page::app::App]>--></div>
     </body>
 </html>
