@@ -10,7 +10,6 @@ keywords = ["yew", "ssg", "static-site-generator", "wasm", "seo"]
 categories = ["web-programming", "wasm"]
 
 [dependencies]
-async-trait.workspace = true
 log.workspace = true
 lol_html.workspace = true
 minijinja.workspace = true

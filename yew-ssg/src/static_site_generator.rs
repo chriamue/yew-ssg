@@ -83,13 +83,13 @@ impl StaticSiteGenerator {
 
     pub fn set_current_language(lang: &str) {
         // Set both environment variable and thread-local
-        std::env::set_var("YEW_SSG_CURRENT_LANG", lang);
+        unsafe { std::env::set_var("YEW_SSG_CURRENT_LANG", lang) };
         yew_router::LanguageContext::set_thread_local_lang(lang);
     }
 
     /// Clear the current language from both sources
     pub fn clear_current_language() {
-        std::env::remove_var("YEW_SSG_CURRENT_LANG");
+        unsafe { std::env::remove_var("YEW_SSG_CURRENT_LANG") };
         yew_router::LanguageContext::clear_thread_local_lang();
     }
 
@@ -117,14 +117,14 @@ impl StaticSiteGenerator {
 
             // 1. Set YEW_SSG_CURRENT_PATH
             if path_prefix.is_empty() {
-                std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+                unsafe { std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path) };
             } else {
                 let prefixed_path = if path_prefix.starts_with('/') {
                     format!("{}{}", path_prefix, route_path)
                 } else {
                     format!("/{}{}", path_prefix, route_path)
                 };
-                std::env::set_var("YEW_SSG_CURRENT_PATH", &prefixed_path);
+                unsafe { std::env::set_var("YEW_SSG_CURRENT_PATH", &prefixed_path) };
                 info!("  Using prefixed path: {}", prefixed_path);
             }
 
@@ -134,7 +134,7 @@ impl StaticSiteGenerator {
             let content = self.render_base_component::<C>().await?;
 
             // 3. Clear path + language hints after render
-            std::env::remove_var("YEW_SSG_CURRENT_PATH");
+            unsafe { std::env::remove_var("YEW_SSG_CURRENT_PATH") };
             Self::clear_current_language();
 
             // 4. Metadata
@@ -256,29 +256,29 @@ impl StaticSiteGenerator {
 
                     // 1. Set env path
                     if path_prefix.is_empty() {
-                        std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+                        unsafe { std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path) };
                     } else {
                         let prefixed_path = if path_prefix.starts_with('/') {
                             format!("{}{}", path_prefix, route_path)
                         } else {
                             format!("/{}{}", path_prefix, route_path)
                         };
-                        std::env::set_var("YEW_SSG_CURRENT_PATH", &prefixed_path);
+                        unsafe { std::env::set_var("YEW_SSG_CURRENT_PATH", &prefixed_path) };
                         info!("  Using prefixed path: {}", prefixed_path);
                     }
 
                     // Route param envs
                     for (k, v) in &params {
-                        std::env::set_var(format!("YEW_SSG_PARAM_{}", k), v);
+                        unsafe { std::env::set_var(format!("YEW_SSG_PARAM_{}", k), v) };
                     }
 
                     // 2. Render
                     let content = self.render_base_component::<C>().await?;
 
                     // 3. Clear env
-                    std::env::remove_var("YEW_SSG_CURRENT_PATH");
+                    unsafe { std::env::remove_var("YEW_SSG_CURRENT_PATH") };
                     for k in params.keys() {
-                        std::env::remove_var(format!("YEW_SSG_PARAM_{}", k));
+                        unsafe { std::env::remove_var(format!("YEW_SSG_PARAM_{}", k)) };
                     }
                     Self::clear_current_language();
 
@@ -418,16 +418,16 @@ impl StaticSiteGenerator {
                 route_path, params
             );
 
-            std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path);
+            unsafe { std::env::set_var("YEW_SSG_CURRENT_PATH", &route_path) };
             for (k, v) in &params {
-                std::env::set_var(format!("YEW_SSG_PARAM_{}", k), v);
+                unsafe { std::env::set_var(format!("YEW_SSG_PARAM_{}", k), v) };
             }
 
             let content = self.render_base_component::<C>().await?;
 
-            std::env::remove_var("YEW_SSG_CURRENT_PATH");
+            unsafe { std::env::remove_var("YEW_SSG_CURRENT_PATH") };
             for k in params.keys() {
-                std::env::remove_var(format!("YEW_SSG_PARAM_{}", k));
+                unsafe { std::env::remove_var(format!("YEW_SSG_PARAM_{}", k)) };
             }
             Self::clear_current_language();
 

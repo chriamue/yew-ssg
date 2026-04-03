@@ -21,11 +21,11 @@ mod tests {
     #[serial]
     fn test_get_base_url() {
         // First test when BASE_URL is not set
-        std::env::remove_var("BASE_URL");
+        unsafe { std::env::remove_var("BASE_URL") };
         assert_eq!(get_base_url(), "");
 
         // Then test when BASE_URL is set
-        std::env::set_var("BASE_URL", "/base");
+        unsafe { std::env::set_var("BASE_URL", "/base") };
         assert_eq!(get_base_url(), "/base");
     }
 
@@ -33,19 +33,19 @@ mod tests {
     #[serial]
     fn test_combine_with_base_url() {
         // Test without BASE_URL
-        std::env::remove_var("BASE_URL");
+        unsafe { std::env::remove_var("BASE_URL") };
         assert_eq!(combine_with_base_url("/page"), "/page");
 
         // Test with BASE_URL
-        std::env::set_var("BASE_URL", "/base");
+        unsafe { std::env::set_var("BASE_URL", "/base") };
         assert_eq!(combine_with_base_url("/page"), "/base/page");
         assert_eq!(combine_with_base_url("page"), "/base/page");
 
         // Test with trailing slash in BASE_URL
-        std::env::set_var("BASE_URL", "/base/");
+        unsafe { std::env::set_var("BASE_URL", "/base/") };
         assert_eq!(combine_with_base_url("/page"), "/base/page");
 
         // Cleanup
-        std::env::remove_var("BASE_URL");
+        unsafe { std::env::remove_var("BASE_URL") };
     }
 }

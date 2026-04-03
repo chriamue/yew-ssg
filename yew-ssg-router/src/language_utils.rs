@@ -12,13 +12,13 @@ impl LanguageUtils {
     /// Set language for current generation context
     pub fn set_generation_language(lang: &str) {
         LanguageContext::set_thread_local_lang(lang);
-        std::env::set_var("YEW_SSG_CURRENT_LANG", lang);
+        unsafe { std::env::set_var("YEW_SSG_CURRENT_LANG", lang) };
     }
 
     /// Clear language from current generation context
     pub fn clear_generation_language() {
         LanguageContext::clear_thread_local_lang();
-        std::env::remove_var("YEW_SSG_CURRENT_LANG");
+        unsafe { std::env::remove_var("YEW_SSG_CURRENT_LANG") };
     }
 
     /// Create a scoped language context that automatically cleans up
@@ -43,8 +43,8 @@ impl LanguageUtils {
         }
 
         match old_env {
-            Some(old_lang) => std::env::set_var("YEW_SSG_CURRENT_LANG", old_lang),
-            None => std::env::remove_var("YEW_SSG_CURRENT_LANG"),
+            Some(old_lang) => unsafe { std::env::set_var("YEW_SSG_CURRENT_LANG", old_lang) },
+            None => unsafe { std::env::remove_var("YEW_SSG_CURRENT_LANG") },
         }
 
         result
