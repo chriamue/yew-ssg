@@ -60,7 +60,7 @@ pub fn process_element(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lol_html::{element, HtmlRewriter, Settings};
+    use lol_html::{HtmlRewriter, Settings, element};
     use std::collections::HashMap;
 
     fn test_rewriting(

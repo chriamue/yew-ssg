@@ -408,8 +408,11 @@ mod tests {
             .unwrap();
 
         // Now English should be included since current lang is German
-        assert!(result
-            .contains("<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page"));
+        assert!(
+            result.contains(
+                "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page"
+            )
+        );
         // Other languages should use a language path prefix
         assert!(result.contains(
             "<link rel=\"alternate\" hreflang=\"es\" href=\"https://example.com/es/page"
@@ -443,8 +446,11 @@ mod tests {
             .unwrap();
 
         // English URL should be present since current lang is French
-        assert!(result
-            .contains("<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page"));
+        assert!(
+            result.contains(
+                "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page"
+            )
+        );
         // Spanish URL should use the custom URL provided
         assert!(result.contains(
             "<link rel=\"alternate\" hreflang=\"es\" href=\"https://example.es/pagina\">"
@@ -470,8 +476,11 @@ mod tests {
 
         // Should contain both canonical and alternate links
         assert!(result.contains("<link rel=\"canonical\" href=\"https://example.com/page\">"));
-        assert!(result
-            .contains("<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page"));
+        assert!(
+            result.contains(
+                "<link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/page"
+            )
+        );
         assert!(result.contains(
             "<link rel=\"alternate\" hreflang=\"es\" href=\"https://example.com/es/page"
         ));
@@ -619,7 +628,9 @@ mod tests {
         );
 
         // Should preserve trailing slash for other languages
-        assert!(result_with_slash.contains("hreflang=\"es\" href=\"https://example.com/es/page/\""));
+        assert!(
+            result_with_slash.contains("hreflang=\"es\" href=\"https://example.com/es/page/\"")
+        );
         assert!(result_with_slash.contains("hreflang=\"en\" href=\"https://example.com/page/\""));
     }
 
@@ -1066,8 +1077,7 @@ mod tests {
                 .generate("canonical", "", "", &metadata_es)
                 .unwrap();
             assert_eq!(
-                result_es,
-                "<link rel=\"canonical\" href=\"https://example.com/es/about\">\n",
+                result_es, "<link rel=\"canonical\" href=\"https://example.com/es/about\">\n",
                 "With canonical_to_default_langs: None or [], Spanish should have its own canonical"
             );
 
@@ -1081,8 +1091,7 @@ mod tests {
                 .generate("canonical", "", "", &metadata_en)
                 .unwrap();
             assert_eq!(
-                result_en,
-                "<link rel=\"canonical\" href=\"https://example.com/about\">\n",
+                result_en, "<link rel=\"canonical\" href=\"https://example.com/about\">\n",
                 "With canonical_to_default_langs: None or [], English should have canonical without prefix"
             );
         }

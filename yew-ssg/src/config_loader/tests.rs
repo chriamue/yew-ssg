@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::config_loader::{
-        loader::{load_config, ConfigLoader},
+        loader::{ConfigLoader, load_config},
         loaders::{JsonLoader, YamlLoader},
         model::{
             CanonicalBehavior, GeneralConfig, ParameterDefinition, ParameterVariant,
@@ -371,14 +371,18 @@ routes:
         assert_eq!(combinations.len(), 2);
 
         // One combination should have id=item1
-        assert!(combinations
-            .iter()
-            .any(|c| c.get("id") == Some(&"item1".to_string())));
+        assert!(
+            combinations
+                .iter()
+                .any(|c| c.get("id") == Some(&"item1".to_string()))
+        );
 
         // One combination should have id=item2
-        assert!(combinations
-            .iter()
-            .any(|c| c.get("id") == Some(&"item2".to_string())));
+        assert!(
+            combinations
+                .iter()
+                .any(|c| c.get("id") == Some(&"item2".to_string()))
+        );
     }
 
     #[test]

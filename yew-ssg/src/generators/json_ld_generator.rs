@@ -1,6 +1,6 @@
 use crate::generator::Generator;
 use crate::processors::GeneratorOutputSupport;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::any::Any;
 use std::collections::HashMap;
 use std::error::Error;

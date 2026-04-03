@@ -304,8 +304,11 @@ mod tests {
 
         assert!(result.contains("<meta property=\"og:type\" content=\"website\">"));
         assert!(result.contains("<meta property=\"og:site_name\" content=\"Test Site\">"));
-        assert!(result
-            .contains("<meta property=\"og:image\" content=\"https://example.com/default.jpg\">"));
+        assert!(
+            result.contains(
+                "<meta property=\"og:image\" content=\"https://example.com/default.jpg\">"
+            )
+        );
 
         // Test with custom metadata
         let mut metadata = HashMap::new();
@@ -331,8 +334,11 @@ mod tests {
             result.contains("<meta property=\"og:description\" content=\"Custom description\">")
         );
         assert!(result.contains("<meta property=\"og:url\" content=\"https://example.com/test\">"));
-        assert!(result
-            .contains("<meta property=\"og:image\" content=\"https://example.com/custom.jpg\">"));
+        assert!(
+            result.contains(
+                "<meta property=\"og:image\" content=\"https://example.com/custom.jpg\">"
+            )
+        );
     }
 
     #[test]

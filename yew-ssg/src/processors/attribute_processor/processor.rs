@@ -1,8 +1,8 @@
 use crate::generator_collection::GeneratorCollection;
 use crate::processor::Processor;
-use crate::processors::attribute_processor::{process_element, SsgAttribute};
+use crate::processors::attribute_processor::{SsgAttribute, process_element};
 use log::{debug, warn};
-use lol_html::{element, HtmlRewriter, Settings};
+use lol_html::{HtmlRewriter, Settings, element};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;

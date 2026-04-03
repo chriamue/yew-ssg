@@ -7,8 +7,8 @@ use std::fmt::Debug;
 use std::fs;
 use std::path::PathBuf;
 use strum::IntoEnumIterator;
-use yew::prelude::*;
 use yew::ServerRenderer;
+use yew::prelude::*;
 use yew_router::Routable;
 
 const DEFAULT_TEMPLATE: &str = r#"<!DOCTYPE html>

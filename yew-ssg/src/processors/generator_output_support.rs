@@ -11,8 +11,8 @@ pub trait GeneratorOutputSupport {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::generator::tests::MockGenerator;
     use crate::generator::Generator;
+    use crate::generator::tests::MockGenerator;
 
     impl GeneratorOutputSupport for MockGenerator {
         fn supported_outputs(&self) -> Vec<&'static str> {

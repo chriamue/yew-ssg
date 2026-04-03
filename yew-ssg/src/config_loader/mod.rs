@@ -2,7 +2,7 @@ mod loader;
 mod loaders;
 mod model;
 
-pub use loader::{load_config, ConfigLoader};
+pub use loader::{ConfigLoader, load_config};
 pub use loaders::{JsonLoader, YamlLoader};
 pub use model::*;
 

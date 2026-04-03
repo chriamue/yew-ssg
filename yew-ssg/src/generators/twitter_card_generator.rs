@@ -696,9 +696,14 @@ mod tests {
         assert!(
             result.contains("<meta name=\"twitter:description\" content=\"A page about testing\">")
         );
-        assert!(result
-            .contains("<meta name=\"twitter:image\" content=\"https://example.com/image.jpg\">"));
-        assert!(result.contains("<meta name=\"twitter:image:alt\" content=\"Alt text for image\">"));
+        assert!(
+            result.contains(
+                "<meta name=\"twitter:image\" content=\"https://example.com/image.jpg\">"
+            )
+        );
+        assert!(
+            result.contains("<meta name=\"twitter:image:alt\" content=\"Alt text for image\">")
+        );
     }
 
     #[test]
@@ -957,9 +962,11 @@ mod tests {
         );
 
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("does not support key"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("does not support key")
+        );
     }
 }

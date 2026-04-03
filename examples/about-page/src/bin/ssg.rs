@@ -5,8 +5,8 @@ use log::{error, info};
 use std::env;
 use std::error::Error;
 use yew_router::LanguageUtils;
-use yew_ssg::config_loader::load_config;
 use yew_ssg::StaticSiteGenerator;
+use yew_ssg::config_loader::load_config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

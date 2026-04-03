@@ -1,7 +1,7 @@
 #![cfg(test)]
 
-use crate::impl_localized_route;
 use crate::LocalizedRoutable;
+use crate::impl_localized_route;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use yew_router::Routable;
